@@ -6,7 +6,6 @@ import "@nomiclabs/hardhat-etherscan"
 import "@nomiclabs/hardhat-solhint"
 import "@nomiclabs/hardhat-ethers"
 import "hardhat-abi-exporter"
-import "hardhat-deploy"
 import "solidity-coverage"
 import "hardhat-spdx-license-identifier"
 import { HardhatUserConfig } from "hardhat/types"
@@ -37,16 +36,21 @@ const config: HardhatUserConfig = {
     apiKey: process.env.FTMSCAN_API_KEY
   },
   networks: {
+    hardhat: {
+      accounts,
+      forking: {
+        url: "https://rpc.fantom.network",
+      }
+    },
     localhost: {
-      live: false,
+      accounts,
       gasPrice: 20000000000,
     },
     fantom: {
-      url: "https://rpcapi.fantom.network",
+      url: "https://rpc.ftm.tools",
       accounts,
       chainId: 250,
-      gasPrice: 50000000000,
-      saveDeployments: true,
+      gasPrice: 1000000000000,
     },
     "fantom-testnet": {
       url: "https://rpc.testnet.fantom.network",

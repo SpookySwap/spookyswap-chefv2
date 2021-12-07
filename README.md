@@ -1,1 +1,1 @@
-# spookyswap-gacha
+# spookyswap-chefv2

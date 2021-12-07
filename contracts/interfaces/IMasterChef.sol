@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.0;
-import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
+pragma solidity ^0.8.0;
+import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 interface IMasterChef {
-    using SafeERC20 for IERC20;
     struct UserInfo {
         uint256 amount;     // How many LP tokens the user has provided.
         uint256 rewardDebt; // Reward debt. See explanation below.

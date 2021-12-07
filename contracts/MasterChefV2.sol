@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.0;
-// pragma experimental ABIEncoderV2;
+pragma solidity 0.8.4;
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import '@openzeppelin/contracts/utils/math/SafeMath.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import "./interfaces/IRewarder.sol";
 import "./interfaces/IMasterChef.sol";
@@ -16,7 +14,6 @@ import "./interfaces/IMasterChef.sol";
 /// that is deposited into the MasterChef V1 (MCV1) contract.
 /// The allocation point for this pool on MCV1 is the total allocation point for all pools that receive double incentives.
 contract MasterChefV2 is Ownable {
-    using SafeMath for uint;
     using SafeERC20 for IERC20;
 
     /// @notice Info of each MCV2 user.
@@ -63,13 +60,13 @@ contract MasterChefV2 is Ownable {
     event Harvest(address indexed user, uint indexed pid, uint amount);
     event LogPoolAddition(uint indexed pid, uint allocPoint, IERC20 indexed lpToken, IRewarder indexed rewarder);
     event LogSetPool(uint indexed pid, uint allocPoint, IRewarder indexed rewarder, bool overwrite);
-    event LogUpdatePool(uint indexed pid, uint64 lastRewardTime, uint lpSupply, uint accBooPerShare);
+    event LogUpdatePool(uint indexed pid, uint lastRewardTime, uint lpSupply, uint accBooPerShare);
     event LogInit();
 
     /// @param _MASTER_CHEF The SpookySwap MCV1 contract address.
     /// @param _boo The BOO token contract address.
     /// @param _MASTER_PID The pool ID of the dummy token on the base MCV1 contract.
-    constructor(IMasterChef _MASTER_CHEF, IERC20 _boo, uint _MASTER_PID) public {
+    constructor(IMasterChef _MASTER_CHEF, IERC20 _boo, uint _MASTER_PID) {
         MASTER_CHEF = _MASTER_CHEF;
         BOO = _boo;
         MASTER_PID = _MASTER_PID;
@@ -94,9 +91,9 @@ contract MasterChefV2 is Ownable {
     }
 
     function checkForDuplicate(IERC20 _lpToken) internal view {
-        uint length = poolInfo.length;
+        uint length = lpToken.length;
         for (uint _pid = 0; _pid < length; _pid++) {
-            require(poolInfo[_pid].lpToken != _lpToken, "add: pool already exists!!!!");
+            require(lpToken[_pid] != _lpToken, "add: pool already exists!!!!");
         }
 
     }
@@ -112,7 +109,7 @@ contract MasterChefV2 is Ownable {
         massUpdatePools();
 
         uint lastRewardTime = block.timestamp;
-        totalAllocPoint = totalAllocPoint.add(allocPoint);
+        totalAllocPoint = totalAllocPoint + allocPoint;
         lpToken.push(_lpToken);
         rewarder.push(_rewarder);
 
@@ -121,7 +118,7 @@ contract MasterChefV2 is Ownable {
             lastRewardTime: lastRewardTime,
             accBooPerShare: 0
         }));
-        emit LogPoolAddition(lpToken.length.sub(1), allocPoint, _lpToken, _rewarder);
+        emit LogPoolAddition(lpToken.length - 1, allocPoint, _lpToken, _rewarder);
     }
 
     /// @notice Update the given pool's BOO allocation point and `IRewarder` contract. Can only be called by the owner.
@@ -131,7 +128,7 @@ contract MasterChefV2 is Ownable {
     /// @param overwrite True if _rewarder should be `set`. Otherwise `_rewarder` is ignored.
     function set(uint _pid, uint _allocPoint, IRewarder _rewarder, bool overwrite) public onlyOwner {
         massUpdatePools();
-        totalAllocPoint = totalAllocPoint.sub(poolInfo[_pid].allocPoint).add(_allocPoint);
+        totalAllocPoint = totalAllocPoint - poolInfo[_pid].allocPoint + _allocPoint;
         poolInfo[_pid].allocPoint = _allocPoint;
         if (overwrite) { rewarder[_pid] = _rewarder; }
         emit LogSetPool(_pid, _allocPoint, overwrite ? _rewarder : rewarder[_pid], overwrite);
@@ -147,11 +144,11 @@ contract MasterChefV2 is Ownable {
         uint accBooPerShare = pool.accBooPerShare;
         uint lpSupply = lpToken[_pid].balanceOf(address(this));
         if (block.timestamp > pool.lastRewardTime && lpSupply != 0) {
-            uint multiplier = block.timestamp.sub(pool.lastRewardTime);
-            uint booReward = multiplier.mul(booPerSecond()).mul(pool.allocPoint) / totalAllocPoint;
-            accBooPerShare = accBooPerShare.add(booReward.mul(ACC_BOO_PRECISION) / lpSupply);
+            uint multiplier = block.timestamp - pool.lastRewardTime;
+            uint booReward = (multiplier * booPerSecond() * pool.allocPoint) / totalAllocPoint;
+            accBooPerShare = accBooPerShare + (booReward * ACC_BOO_PRECISION / lpSupply);
         }
-        pending = user.amount.mul(accBooPerShare) / ACC_BOO_PRECISION).sub(user.rewardDebt;
+        pending = (user.amount * accBooPerShare / ACC_BOO_PRECISION) - user.rewardDebt;
     }
 
     // Update reward variables for all pools. Be careful of gas spending!
@@ -164,8 +161,7 @@ contract MasterChefV2 is Ownable {
 
     /// @notice Calculates and returns the `amount` of BOO per second allocated to this contract
     function booPerSecond() public view returns (uint amount) {
-        amount = MASTER_CHEF.booPerSecond()
-            .mul(MASTER_CHEF.poolInfo(MASTER_PID).allocPoint) / MASTER_CHEF.totalAllocPoint();
+        amount = MASTER_CHEF.booPerSecond() * MASTER_CHEF.poolInfo(MASTER_PID).allocPoint / MASTER_CHEF.totalAllocPoint();
     }
 
     /// @notice Update reward variables of the given pool.
@@ -176,10 +172,10 @@ contract MasterChefV2 is Ownable {
         if (block.timestamp > pool.lastRewardTime) {
             uint lpSupply = lpToken[pid].balanceOf(address(this));
             if (lpSupply > 0) {
-                uint multiplier = block.timestamp.sub(pool.lastRewardTime);
-                uint booReward = multiplier.mul(booPerSecond()).mul(pool.allocPoint) / totalAllocPoint;
+                uint multiplier = block.timestamp - pool.lastRewardTime;
+                uint booReward = (multiplier * booPerSecond() * pool.allocPoint) / totalAllocPoint;
                 harvestFromMasterChef();
-                pool.accBooPerShare = pool.accBooPerShare.add((booReward.mul(ACC_BOO_PRECISION) / lpSupply);
+                pool.accBooPerShare = pool.accBooPerShare + ((booReward * ACC_BOO_PRECISION) / lpSupply);
             }
             pool.lastRewardTime = block.timestamp;
             poolInfo[pid] = pool;
@@ -194,13 +190,12 @@ contract MasterChefV2 is Ownable {
     function deposit(uint pid, uint amount, address to) public {
         PoolInfo memory pool = updatePool(pid);
         UserInfo storage user = userInfo[pid][to];
-        uint accumulatedBoo = user.amount.mul(pool.accBooPerShare) / ACC_BOO_PRECISION;
-        uint _pendingBoo = accumulatedBoo.sub(user.rewardDebt);
-
+        uint accumulatedBoo = user.amount * pool.accBooPerShare / ACC_BOO_PRECISION;
+        uint _pendingBoo = accumulatedBoo - user.rewardDebt;
 
         // Effects
-        user.amount = user.amount.add(amount);
-        user.rewardDebt = user.rewardDebt.add(amount.mul(pool.accBooPerShare) / ACC_BOO_PRECISION);
+        user.amount = user.amount + amount;
+        user.rewardDebt = user.rewardDebt + (amount * pool.accBooPerShare / ACC_BOO_PRECISION);
 
         // Interactions
         BOO.safeTransfer(to, _pendingBoo);
@@ -223,12 +218,12 @@ contract MasterChefV2 is Ownable {
     function withdraw(uint pid, uint amount, address to) public {
         PoolInfo memory pool = updatePool(pid);
         UserInfo storage user = userInfo[pid][msg.sender];
-        uint accumulatedBoo = user.amount.mul(pool.accBooPerShare) / ACC_BOO_PRECISION;
-        uint _pendingBoo = accumulatedBoo.sub(user.rewardDebt);
+        uint accumulatedBoo = user.amount * pool.accBooPerShare / ACC_BOO_PRECISION;
+        uint _pendingBoo = accumulatedBoo - user.rewardDebt;
 
         // Effects
-        user.rewardDebt = accumulatedBoo.sub(amount.mul(pool.accBooPerShare) / ACC_BOO_PRECISION);
-        user.amount = user.amount.sub(amount);
+        user.rewardDebt = accumulatedBoo - (amount * pool.accBooPerShare / ACC_BOO_PRECISION);
+        user.amount = user.amount - amount;
         
         // Interactions
         BOO.safeTransfer(to, _pendingBoo);
@@ -260,7 +255,7 @@ contract MasterChefV2 is Ownable {
 
         IRewarder _rewarder = rewarder[pid];
         if (address(_rewarder) != address(0)) {
-            _rewarder.onBooReward(pid, msg.sender, to, 0, 0);
+            _rewarder.onReward(pid, msg.sender, to, 0, 0);
         }
 
         // Note: transfer can fail or succeed if `amount` is zero.

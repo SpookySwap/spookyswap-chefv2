@@ -7,6 +7,10 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import "./MasterChefV2.sol";
 
+interface IERC20Ext is IERC20 {
+    function decimals() external returns (uint);
+}
+
 contract ComplexRewarderTime is IRewarder,  Ownable{
     using SafeERC20 for IERC20;
 
@@ -40,7 +44,7 @@ contract ComplexRewarderTime is IRewarder,  Ownable{
     uint totalAllocPoint;
 
     uint public rewardPerSecond;
-    uint private constant ACC_TOKEN_PRECISION = 1e12;
+    uint public immutable ACC_TOKEN_PRECISION;
 
     address private immutable MASTERCHEF_V2;
 
@@ -60,24 +64,27 @@ contract ComplexRewarderTime is IRewarder,  Ownable{
         _;
     }
 
-    constructor (IERC20 _rewardToken, uint _rewardPerSecond, address _MASTERCHEF_V2) {
+    constructor (IERC20Ext _rewardToken, uint _rewardPerSecond, address _MASTERCHEF_V2) {
+        uint decimalsRewardToken = _Token.decimals();
+        require(decimalsRewardToken < 30, "Token has way too many decimals");
+        ACC_TOKEN_PRECISION = 10**(30 - decimalsRewardToken);
         rewardToken = _rewardToken;
         rewardPerSecond = _rewardPerSecond;
         MASTERCHEF_V2 = _MASTERCHEF_V2;
     }
 
 
-    function onReward (uint pid, address _user, address to, uint, uint lpToken) onlyMCV2 override external {
-        PoolInfo memory pool = updatePool(pid);
-        UserInfo storage user = userInfo[pid][_user];
+    function onReward (uint _pid, address _user, address _to, uint, uint _amt) onlyMCV2 override external {
+        PoolInfo memory pool = updatePool(_pid);
+        UserInfo storage user = userInfo[_pid][_user];
         uint pending;
         if (user.amount > 0) {
             pending = (user.amount * pool.accRewardPerShare / ACC_TOKEN_PRECISION) - user.rewardDebt;
-            rewardToken.safeTransfer(to, pending);
+            rewardToken.safeTransfer(_to, pending);
         }
-        user.amount = lpToken;
-        user.rewardDebt = lpToken * pool.accRewardPerShare / ACC_TOKEN_PRECISION;
-        emit LogOnReward(_user, pid, pending, to);
+        user.amount = _amt;
+        user.rewardDebt = _amt * pool.accRewardPerShare / ACC_TOKEN_PRECISION;
+        emit LogOnReward(_user, _pid, pending, _to);
     }
     
     function pendingTokens(uint pid, address user, uint) override external view returns (IERC20[] memory rewardTokens, uint[] memory rewardAmounts) {
@@ -107,6 +114,7 @@ contract ComplexRewarderTime is IRewarder,  Ownable{
     /// @param _pid Pid on MCV2
     function add(uint allocPoint, uint _pid) public onlyOwner {
         require(poolInfo[_pid].lastRewardTime == 0, "Pool already exists");
+        massUpdatePools();
         uint lastRewardTime = block.timestamp;
         totalAllocPoint = totalAllocPoint + allocPoint;
 
@@ -123,7 +131,8 @@ contract ComplexRewarderTime is IRewarder,  Ownable{
     /// @param _pid The index of the pool. See `poolInfo`.
     /// @param _allocPoint New AP of the pool.
     function set(uint _pid, uint _allocPoint) public onlyOwner {
-        totalAllocPoint = totalAllocPoint -poolInfo[_pid].allocPoint + _allocPoint;
+        massUpdatePools();
+        totalAllocPoint = totalAllocPoint - poolInfo[_pid].allocPoint + _allocPoint;
         poolInfo[_pid].allocPoint = _allocPoint;
         emit LogSetPool(_pid, _allocPoint);
     }
@@ -147,11 +156,10 @@ contract ComplexRewarderTime is IRewarder,  Ownable{
     }
 
     /// @notice Update reward variables for all pools. Be careful of gas spending!
-    /// @param pids Pool IDs of all to be updated. Make sure to update all active pools.
-    function massUpdatePools(uint[] calldata pids) external {
-        uint len = pids.length;
+    function massUpdatePools() public {
+        uint len = poolIds.length;
         for (uint i = 0; i < len; ++i) {
-            updatePool(pids[i]);
+            updatePool(poolIds[i]);
         }
     }
 

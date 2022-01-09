@@ -45,7 +45,7 @@ contract MasterChefV2 is Ownable {
     /// @notice Address of the LP token for each MCV2 pool.
     IERC20[] public lpToken;
     /// @notice Address of each `IRewarder` contract in MCV2.
-    IRewarder[] public rewarder;
+    mapping(uint => IRewarder[]) public rewarders;
 
     /// @notice Info of each user that stakes LP tokens.
     mapping (uint => mapping (address => UserInfo)) public userInfo;
@@ -59,7 +59,7 @@ contract MasterChefV2 is Ownable {
     event EmergencyWithdraw(address indexed user, uint indexed pid, uint amount, address indexed to);
     event Harvest(address indexed user, uint indexed pid, uint amount);
     event LogPoolAddition(uint indexed pid, uint allocPoint, IERC20 indexed lpToken, IRewarder indexed rewarder);
-    event LogSetPool(uint indexed pid, uint allocPoint, IRewarder indexed rewarder, bool overwrite);
+    event LogSetPool(uint indexed pid, uint allocPoint, IRewarder[] indexed rewarders, bool overwrite);
     event LogUpdatePool(uint indexed pid, uint lastRewardTime, uint lpSupply, uint accBooPerShare);
     event LogInit();
 
@@ -101,8 +101,8 @@ contract MasterChefV2 is Ownable {
     /// @notice Add a new LP to the pool. Can only be called by the owner.
     /// @param allocPoint AP of the new pool.
     /// @param _lpToken Address of the LP ERC-20 token.
-    /// @param _rewarder Address of the rewarder delegate.
-    function add(uint allocPoint, IERC20 _lpToken, IRewarder _rewarder) public onlyOwner {
+    /// @param _rewarders Addresses of the rewarder delegate(s).
+    function add(uint allocPoint, IERC20 _lpToken, IRewarder[] _rewarders) public onlyOwner {
         
         checkForDuplicate(_lpToken);
 
@@ -111,7 +111,10 @@ contract MasterChefV2 is Ownable {
         uint lastRewardTime = block.timestamp;
         totalAllocPoint = totalAllocPoint + allocPoint;
         lpToken.push(_lpToken);
-        rewarder.push(_rewarder);
+        uint pid = lpToken.length - 1;
+        for (uint256 i = 0; i < array.length; i++) {
+            rewarders[pid].push(_rewarders[i]);
+        }
 
         poolInfo.push(PoolInfo({
             allocPoint: allocPoint,
@@ -124,14 +127,19 @@ contract MasterChefV2 is Ownable {
     /// @notice Update the given pool's BOO allocation point and `IRewarder` contract. Can only be called by the owner.
     /// @param _pid The index of the pool. See `poolInfo`.
     /// @param _allocPoint New AP of the pool.
-    /// @param _rewarder Address of the rewarder delegate.
-    /// @param overwrite True if _rewarder should be `set`. Otherwise `_rewarder` is ignored.
-    function set(uint _pid, uint _allocPoint, IRewarder _rewarder, bool overwrite) public onlyOwner {
+    /// @param _rewarders Addresses of the rewarder delegates.
+    /// @param overwrite True if _rewarders should be `set`. Otherwise `_rewarders` is ignored.
+    function set(uint _pid, uint _allocPoint, IRewarder[] _rewarders, bool overwrite) public onlyOwner {
         massUpdatePools();
         totalAllocPoint = totalAllocPoint - poolInfo[_pid].allocPoint + _allocPoint;
         poolInfo[_pid].allocPoint = _allocPoint;
-        if (overwrite) { rewarder[_pid] = _rewarder; }
-        emit LogSetPool(_pid, _allocPoint, overwrite ? _rewarder : rewarder[_pid], overwrite);
+        if (overwrite) {
+            delete rewarders[_pid];
+            for (uint256 i = 0; i < array.length; i++) {
+                rewarders[_pid].push(_rewarders[i]);
+            } 
+        }
+        emit LogSetPool(_pid, _allocPoint, overwrite ? _rewarders : rewarders[_pid], overwrite);
     }
 
     /// @notice View function to see pending BOO on frontend.
@@ -200,9 +208,12 @@ contract MasterChefV2 is Ownable {
         // Interactions
         BOO.safeTransfer(to, _pendingBoo);
 
-        IRewarder _rewarder = rewarder[pid];
-        if (address(_rewarder) != address(0)) {
-            _rewarder.onReward(pid, to, to, 0, user.amount);
+        IRewarder _rewarder;
+        for (uint256 i = 0; i < rewarders.length; i++) {
+            _rewarder = rewarders[i];
+            if (address(_rewarder) != address(0)) {
+                _rewarder.onReward(pid, to, to, 0, user.amount);
+            }
         }
 
         lpToken[pid].safeTransferFrom(msg.sender, address(this), amount);
@@ -228,9 +239,12 @@ contract MasterChefV2 is Ownable {
         // Interactions
         BOO.safeTransfer(to, _pendingBoo);
 
-        IRewarder _rewarder = rewarder[pid];
-        if (address(_rewarder) != address(0)) {
-            _rewarder.onReward(pid, msg.sender, to, _pendingBoo, user.amount);
+        IRewarder _rewarder;
+        for (uint256 i = 0; i < rewarders.length; i++) {
+            _rewarder = rewarders[i];
+            if (address(_rewarder) != address(0)) {
+                _rewarder.onReward(pid, msg.sender, to, _pendingBoo, user.amount);
+            }
         }
 
         lpToken[pid].safeTransfer(to, amount);
@@ -252,11 +266,6 @@ contract MasterChefV2 is Ownable {
         uint amount = user.amount;
         user.amount = 0;
         user.rewardDebt = 0;
-
-        IRewarder _rewarder = rewarder[pid];
-        if (address(_rewarder) != address(0)) {
-            _rewarder.onReward(pid, msg.sender, to, 0, 0);
-        }
 
         // Note: transfer can fail or succeed if `amount` is zero.
         lpToken[pid].safeTransfer(to, amount);

@@ -112,7 +112,7 @@ contract MasterChefV2 is Ownable {
         totalAllocPoint = totalAllocPoint + allocPoint;
         lpToken.push(_lpToken);
         uint pid = lpToken.length - 1;
-        for (uint256 i = 0; i < array.length; i++) {
+        for (uint256 i = 0; i < _rewarders.length; i++) {
             rewarders[pid].push(_rewarders[i]);
         }
 
@@ -135,7 +135,7 @@ contract MasterChefV2 is Ownable {
         poolInfo[_pid].allocPoint = _allocPoint;
         if (overwrite) {
             delete rewarders[_pid];
-            for (uint256 i = 0; i < array.length; i++) {
+            for (uint256 i = 0; i < _rewarders.length; i++) {
                 rewarders[_pid].push(_rewarders[i]);
             } 
         }

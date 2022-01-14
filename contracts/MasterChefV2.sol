@@ -44,6 +44,8 @@ contract MasterChefV2 is Ownable {
     PoolInfo[] public poolInfo;
     /// @notice Address of the LP token for each MCV2 pool.
     IERC20[] public lpToken;
+    /// @notice Is an address contained in the above `lpToken` array
+    mapping(address => bool) public isLpToken;
     /// @notice Address of each `IRewarder` contract in MCV2.
     mapping(uint => IRewarder[]) public rewarders;
 
@@ -91,11 +93,7 @@ contract MasterChefV2 is Ownable {
     }
 
     function checkForDuplicate(IERC20 _lpToken) internal view {
-        uint length = lpToken.length;
-        for (uint _pid = 0; _pid < length; _pid++) {
-            require(lpToken[_pid] != _lpToken, "add: pool already exists!!!!");
-        }
-
+        require(!isLpToken[address(_lpToken)], "add: pool already exists!!!!");
     }
 
     /// @notice Add a new LP to the pool. Can only be called by the owner.
@@ -111,6 +109,7 @@ contract MasterChefV2 is Ownable {
         uint lastRewardTime = block.timestamp;
         totalAllocPoint = totalAllocPoint + allocPoint;
         lpToken.push(_lpToken);
+        isLpToken[address(_lpToken)] = true;
         uint pid = lpToken.length - 1;
         for (uint256 i = 0; i < _rewarders.length; i++) {
             rewarders[pid].push(_rewarders[i]);

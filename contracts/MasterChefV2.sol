@@ -239,7 +239,7 @@ contract MasterChefV2 is Ownable {
         uint _pendingBoo = accumulatedBoo - user.rewardDebt;
 
         // Effects
-        user.rewardDebt = accumulatedBoo - (amount * pool.accBooPerShare / ACC_BOO_PRECISION);
+        user.rewardDebt = user.rewardDebt - (amount * pool.accBooPerShare / ACC_BOO_PRECISION);
         user.amount = user.amount - amount;
         
         // Interactions

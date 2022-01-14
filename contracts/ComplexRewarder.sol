@@ -65,7 +65,7 @@ contract ComplexRewarderTime is IRewarder,  Ownable{
     }
 
     constructor (IERC20Ext _rewardToken, uint _rewardPerSecond, address _MASTERCHEF_V2) {
-        uint decimalsRewardToken = _Token.decimals();
+        uint decimalsRewardToken = _rewardToken.decimals();
         require(decimalsRewardToken < 30, "Token has way too many decimals");
         ACC_TOKEN_PRECISION = 10**(30 - decimalsRewardToken);
         rewardToken = _rewardToken;

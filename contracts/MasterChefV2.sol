@@ -58,7 +58,7 @@ contract MasterChefV2 is Ownable {
     event Withdraw(address indexed user, uint indexed pid, uint amount, address indexed to);
     event EmergencyWithdraw(address indexed user, uint indexed pid, uint amount, address indexed to);
     event Harvest(address indexed user, uint indexed pid, uint amount);
-    event LogPoolAddition(uint indexed pid, uint allocPoint, IERC20 indexed lpToken, IRewarder indexed rewarder);
+    event LogPoolAddition(uint indexed pid, uint allocPoint, IERC20 indexed lpToken, IRewarder[] indexed rewarder);
     event LogSetPool(uint indexed pid, uint allocPoint, IRewarder[] indexed rewarders, bool overwrite);
     event LogUpdatePool(uint indexed pid, uint lastRewardTime, uint lpSupply, uint accBooPerShare);
     event LogInit();
@@ -102,7 +102,7 @@ contract MasterChefV2 is Ownable {
     /// @param allocPoint AP of the new pool.
     /// @param _lpToken Address of the LP ERC-20 token.
     /// @param _rewarders Addresses of the rewarder delegate(s).
-    function add(uint allocPoint, IERC20 _lpToken, IRewarder[] _rewarders) public onlyOwner {
+    function add(uint allocPoint, IERC20 _lpToken, IRewarder[] memory _rewarders) public onlyOwner {
         
         checkForDuplicate(_lpToken);
 
@@ -121,7 +121,7 @@ contract MasterChefV2 is Ownable {
             lastRewardTime: lastRewardTime,
             accBooPerShare: 0
         }));
-        emit LogPoolAddition(lpToken.length - 1, allocPoint, _lpToken, _rewarder);
+        emit LogPoolAddition(lpToken.length - 1, allocPoint, _lpToken, _rewarders);
     }
 
     /// @notice Update the given pool's BOO allocation point and `IRewarder` contract. Can only be called by the owner.
@@ -129,7 +129,7 @@ contract MasterChefV2 is Ownable {
     /// @param _allocPoint New AP of the pool.
     /// @param _rewarders Addresses of the rewarder delegates.
     /// @param overwrite True if _rewarders should be `set`. Otherwise `_rewarders` is ignored.
-    function set(uint _pid, uint _allocPoint, IRewarder[] _rewarders, bool overwrite) public onlyOwner {
+    function set(uint _pid, uint _allocPoint, IRewarder[] memory _rewarders, bool overwrite) public onlyOwner {
         massUpdatePools();
         totalAllocPoint = totalAllocPoint - poolInfo[_pid].allocPoint + _allocPoint;
         poolInfo[_pid].allocPoint = _allocPoint;
@@ -208,9 +208,10 @@ contract MasterChefV2 is Ownable {
         // Interactions
         BOO.safeTransfer(to, _pendingBoo);
 
+        IRewarder[] memory _rewarders = rewarders[pid];
         IRewarder _rewarder;
-        for (uint256 i = 0; i < rewarders.length; i++) {
-            _rewarder = rewarders[i];
+        for (uint256 i = 0; i < _rewarders.length; i++) {
+            _rewarder = _rewarders[i];
             if (address(_rewarder) != address(0)) {
                 _rewarder.onReward(pid, to, to, 0, user.amount);
             }
@@ -239,11 +240,12 @@ contract MasterChefV2 is Ownable {
         // Interactions
         BOO.safeTransfer(to, _pendingBoo);
 
+        IRewarder[] memory _rewarders = rewarders[pid];
         IRewarder _rewarder;
-        for (uint256 i = 0; i < rewarders.length; i++) {
-            _rewarder = rewarders[i];
+        for (uint256 i = 0; i < _rewarders.length; i++) {
+            _rewarder = _rewarders[i];
             if (address(_rewarder) != address(0)) {
-                _rewarder.onReward(pid, msg.sender, to, _pendingBoo, user.amount);
+                _rewarder.onReward(pid, to, to, 0, user.amount);
             }
         }
 

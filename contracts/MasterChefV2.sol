@@ -101,10 +101,7 @@ contract MasterChefV2 is Ownable {
     /// @param _lpToken Address of the LP ERC-20 token.
     /// @param _rewarders Addresses of the rewarder delegate(s).
     function add(uint allocPoint, IERC20 _lpToken, IRewarder[] memory _rewarders) public onlyOwner {
-        
         checkForDuplicate(_lpToken);
-
-        massUpdatePools();
 
         uint lastRewardTime = block.timestamp;
         totalAllocPoint = totalAllocPoint + allocPoint;
@@ -129,7 +126,6 @@ contract MasterChefV2 is Ownable {
     /// @param _rewarders Addresses of the rewarder delegates.
     /// @param overwrite True if _rewarders should be `set`. Otherwise `_rewarders` is ignored.
     function set(uint _pid, uint _allocPoint, IRewarder[] memory _rewarders, bool overwrite) public onlyOwner {
-        massUpdatePools();
         totalAllocPoint = totalAllocPoint - poolInfo[_pid].allocPoint + _allocPoint;
         poolInfo[_pid].allocPoint = _allocPoint;
         if (overwrite) {
@@ -158,8 +154,18 @@ contract MasterChefV2 is Ownable {
         pending = (user.amount * accBooPerShare / ACC_BOO_PRECISION) - user.rewardDebt;
     }
 
-    // Update reward variables for all pools. Be careful of gas spending!
-    function massUpdatePools() public {
+    /// @notice Update reward variables for an array of pools. Be careful of gas spending!
+    /// @param pids Pool IDs of all to be updated. Make sure to update all active pools.
+    function massUpdatePools(uint256[] calldata pids) external {
+        uint256 len = pids.length;
+        for (uint256 i = 0; i < len; ++i) {
+            updatePool(pids[i]);
+        }
+    }
+
+    // @notice Update reward variables for all pools. Be careful of gas spending!
+    // @warning This function should never be called from a smart contract as it has an unbounded gas cost.
+    function massUpdateAllPools() external {
         uint length = poolInfo.length;
         for (uint pid = 0; pid < length; ++pid) {
             updatePool(pid);

@@ -58,6 +58,11 @@ contract MasterChefV2 is Ownable {
 
     uint private constant ACC_BOO_PRECISION = 1e12;
 
+    /// @dev Last MCV1 harvest timestamp.
+    uint public lastV1HarvestTimestamp;
+    /// @dev How often v1 harvest should be called by the query function
+    uint private V1_HARVEST_QUERY_TIME = 1 days;
+
     event Deposit(address indexed user, uint indexed pid, uint amount, address indexed to);
     event Withdraw(address indexed user, uint indexed pid, uint amount, address indexed to);
     event EmergencyWithdraw(address indexed user, uint indexed pid, uint amount, address indexed to);
@@ -197,7 +202,7 @@ contract MasterChefV2 is Ownable {
             if (lpSupply > 0) {
                 uint multiplier = block.timestamp - pool.lastRewardTime;
                 uint booReward = (multiplier * booPerSecond() * pool.allocPoint) / totalAllocPoint;
-                harvestFromMasterChef();
+                queryHarvestFromMasterChef();
                 pool.accBooPerShare = uint128(pool.accBooPerShare + ((booReward * ACC_BOO_PRECISION) / lpSupply));
             }
             pool.lastRewardTime = uint64(block.timestamp);
@@ -287,7 +292,21 @@ contract MasterChefV2 is Ownable {
 
     /// @notice Harvests BOO from `MASTER_CHEF` MCV1 and pool `MASTER_PID` to this MCV2 contract.
     function harvestFromMasterChef() public {
+        lastV1HarvestTimestamp = block.timestamp;
         MASTER_CHEF.deposit(MASTER_PID, 0);
+    }
+
+    /// @notice calls harvestFromMasterChef() if its been more than `V1_HARVEST_QUERY_TIME` since last v1 harvest
+    function queryHarvestFromMasterChef() public {
+        if(block.timestamp - lastV1HarvestTimestamp > V1_HARVEST_QUERY_TIME)
+            harvestFromMasterChef();
+    }
+
+    function setV1HarvestQueryTime(uint256 newTime, bool inDays) external onlyOwner {
+        if(inDays)
+            V1_HARVEST_QUERY_TIME = newTime * 1 days;
+        else
+            V1_HARVEST_QUERY_TIME = newTime;
     }
 
     /// @notice Withdraw without caring about rewards. EMERGENCY ONLY.

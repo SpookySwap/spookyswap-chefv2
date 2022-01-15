@@ -275,7 +275,7 @@ contract MasterChefV2 is Ownable {
         for (uint256 i = 0; i < _rewarders.length; i++) {
             _rewarder = _rewarders[i];
             if (address(_rewarder) != address(0)) {
-                _rewarder.onReward(pid, to, to, _pendingBoo, user.amount);
+                _rewarder.onReward(pid, msg.sender, to, _pendingBoo, user.amount);
             }
         }
 

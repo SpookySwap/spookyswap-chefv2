@@ -8,6 +8,8 @@ import '@openzeppelin/contracts/access/Ownable.sol';
 import "./interfaces/IRewarder.sol";
 import "./interfaces/IMasterChef.sol";
 
+import "hardhat/console.sol";
+
 /// @notice The (older) MasterChef contract gives out a constant number of BOO tokens per second.
 /// It is the only address with minting rights for BOO.
 /// The idea for this MasterChef V2 (MCV2) contract is therefore to be the owner of a dummy token
@@ -21,7 +23,7 @@ contract MasterChefV2 is Ownable {
     /// `rewardDebt` The amount of BOO entitled to the user.
     struct UserInfo {
         uint amount;
-        uint rewardDebt;
+        int rewardDebt;
     }
 
     /// @notice Info of each MCV2 pool.
@@ -151,7 +153,7 @@ contract MasterChefV2 is Ownable {
             uint booReward = (multiplier * booPerSecond() * pool.allocPoint) / totalAllocPoint;
             accBooPerShare = accBooPerShare + (booReward * ACC_BOO_PRECISION / lpSupply);
         }
-        pending = (user.amount * accBooPerShare / ACC_BOO_PRECISION) - user.rewardDebt;
+        pending = (user.amount * accBooPerShare / ACC_BOO_PRECISION) - uint256(user.rewardDebt);
     }
 
     /// @notice Update reward variables for an array of pools. Be careful of gas spending!
@@ -201,18 +203,19 @@ contract MasterChefV2 is Ownable {
     /// @param amount LP token amount to deposit.
     /// @param to The receiver of `amount` deposit benefit.
     function deposit(uint pid, uint amount, address to) public {
+        harvest(pid, to);
         PoolInfo memory pool = updatePool(pid);
         UserInfo storage user = userInfo[pid][to];
-        uint accumulatedBoo = user.amount * pool.accBooPerShare / ACC_BOO_PRECISION;
-        uint _pendingBoo = accumulatedBoo - user.rewardDebt;
 
         // Effects
         user.amount = user.amount + amount;
-        user.rewardDebt = user.rewardDebt + (amount * pool.accBooPerShare / ACC_BOO_PRECISION);
+        /*console.log("deposit");
+        console.log(user.rewardDebt);
+        console.log(amount);
+        console.log(pool.accBooPerShare);*/
+        user.rewardDebt = user.rewardDebt + int256(amount * pool.accBooPerShare / ACC_BOO_PRECISION);
 
         // Interactions
-        BOO.safeTransfer(to, _pendingBoo);
-
         IRewarder[] memory _rewarders = rewarders[pid];
         IRewarder _rewarder;
         for (uint256 i = 0; i < _rewarders.length; i++) {
@@ -225,7 +228,6 @@ contract MasterChefV2 is Ownable {
         lpToken[pid].safeTransferFrom(msg.sender, address(this), amount);
         
         emit Deposit(msg.sender, pid, amount, to);
-        emit Harvest(msg.sender, pid, _pendingBoo);
     }
     
     /// @notice Withdraw LP tokens from MCV2 and harvest proceeds for transaction sender to `to`.
@@ -233,18 +235,20 @@ contract MasterChefV2 is Ownable {
     /// @param amount LP token amount to withdraw.
     /// @param to Receiver of the LP tokens and BOO rewards.
     function withdraw(uint pid, uint amount, address to) public {
+        harvest(pid, to);
         PoolInfo memory pool = updatePool(pid);
         UserInfo storage user = userInfo[pid][msg.sender];
-        uint accumulatedBoo = user.amount * pool.accBooPerShare / ACC_BOO_PRECISION;
-        uint _pendingBoo = accumulatedBoo - user.rewardDebt;
 
         // Effects
-        user.rewardDebt = user.rewardDebt - (amount * pool.accBooPerShare / ACC_BOO_PRECISION);
+        /*console.log("withdrawing");
+        console.log(user.rewardDebt);
+        console.log(amount);
+        console.log(pool.accBooPerShare);
+        console.log(amount * pool.accBooPerShare / ACC_BOO_PRECISION);*/
+        user.rewardDebt = user.rewardDebt - int256(amount * pool.accBooPerShare / ACC_BOO_PRECISION);
         user.amount = user.amount - amount;
         
         // Interactions
-        BOO.safeTransfer(to, _pendingBoo);
-
         IRewarder[] memory _rewarders = rewarders[pid];
         IRewarder _rewarder;
         for (uint256 i = 0; i < _rewarders.length; i++) {
@@ -257,6 +261,34 @@ contract MasterChefV2 is Ownable {
         lpToken[pid].safeTransfer(to, amount);
 
         emit Withdraw(msg.sender, pid, amount, to);
+    }
+
+    /// @notice Harvest proceeds for transaction sender to `to`.
+    /// @param pid The index of the pool. See `poolInfo`.
+    /// @param to Receiver of SUSHI rewards.
+    function harvest(uint256 pid, address to) public {
+        PoolInfo memory pool = updatePool(pid);
+        UserInfo storage user = userInfo[pid][msg.sender];
+        int accumulatedBoo = int(user.amount * pool.accBooPerShare / ACC_BOO_PRECISION);
+        uint _pendingBoo = uint256(accumulatedBoo - user.rewardDebt);
+
+        // Effects
+        user.rewardDebt = accumulatedBoo;
+
+        // Interactions
+        if (_pendingBoo != 0) {
+            BOO.safeTransfer(to, _pendingBoo);
+        }
+
+        IRewarder[] memory _rewarders = rewarders[pid];
+        IRewarder _rewarder;
+        for (uint256 i = 0; i < _rewarders.length; i++) {
+            _rewarder = _rewarders[i];
+            if (address(_rewarder) != address(0)) {
+                _rewarder.onReward(pid, msg.sender, to, _pendingBoo, user.amount);
+            }
+        }
+
         emit Harvest(msg.sender, pid, _pendingBoo);
     }
 

@@ -30,9 +30,9 @@ contract MasterChefV2 is Ownable {
     /// `allocPoint` The amount of allocation points assigned to the pool.
     /// Also known as the amount of BOO to distribute per second.
     struct PoolInfo {
-        uint accBooPerShare;
-        uint lastRewardTime;
-        uint allocPoint;
+        uint128 accBooPerShare;
+        uint64 lastRewardTime;
+        uint64 allocPoint;
     }
 
     /// @notice Address of MCV1 contract.
@@ -115,8 +115,8 @@ contract MasterChefV2 is Ownable {
         }
 
         poolInfo.push(PoolInfo({
-            allocPoint: allocPoint,
-            lastRewardTime: lastRewardTime,
+            allocPoint: uint64(allocPoint),
+            lastRewardTime: uint64(lastRewardTime),
             accBooPerShare: 0
         }));
         emit LogPoolAddition(lpToken.length - 1, allocPoint, _lpToken, _rewarders);
@@ -129,7 +129,7 @@ contract MasterChefV2 is Ownable {
     /// @param overwrite True if _rewarders should be `set`. Otherwise `_rewarders` is ignored.
     function set(uint _pid, uint _allocPoint, IRewarder[] memory _rewarders, bool overwrite) public onlyOwner {
         totalAllocPoint = totalAllocPoint - poolInfo[_pid].allocPoint + _allocPoint;
-        poolInfo[_pid].allocPoint = _allocPoint;
+        poolInfo[_pid].allocPoint = uint64(_allocPoint);
         if (overwrite) {
             delete rewarders[_pid];
             for (uint256 i = 0; i < _rewarders.length; i++) {
@@ -190,9 +190,9 @@ contract MasterChefV2 is Ownable {
                 uint multiplier = block.timestamp - pool.lastRewardTime;
                 uint booReward = (multiplier * booPerSecond() * pool.allocPoint) / totalAllocPoint;
                 harvestFromMasterChef();
-                pool.accBooPerShare = pool.accBooPerShare + ((booReward * ACC_BOO_PRECISION) / lpSupply);
+                pool.accBooPerShare = uint128(pool.accBooPerShare + ((booReward * ACC_BOO_PRECISION) / lpSupply));
             }
-            pool.lastRewardTime = block.timestamp;
+            pool.lastRewardTime = uint64(block.timestamp);
             poolInfo[pid] = pool;
             emit LogUpdatePool(pid, pool.lastRewardTime, lpSupply, pool.accBooPerShare);
         }
@@ -203,16 +203,11 @@ contract MasterChefV2 is Ownable {
     /// @param amount LP token amount to deposit.
     /// @param to The receiver of `amount` deposit benefit.
     function deposit(uint pid, uint amount, address to) public {
-        harvest(pid, to);
         PoolInfo memory pool = updatePool(pid);
         UserInfo storage user = userInfo[pid][to];
 
         // Effects
         user.amount = user.amount + amount;
-        /*console.log("deposit");
-        console.log(user.rewardDebt);
-        console.log(amount);
-        console.log(pool.accBooPerShare);*/
         user.rewardDebt = user.rewardDebt + int256(amount * pool.accBooPerShare / ACC_BOO_PRECISION);
 
         // Interactions
@@ -235,32 +230,31 @@ contract MasterChefV2 is Ownable {
     /// @param amount LP token amount to withdraw.
     /// @param to Receiver of the LP tokens and BOO rewards.
     function withdraw(uint pid, uint amount, address to) public {
-        harvest(pid, to);
         PoolInfo memory pool = updatePool(pid);
         UserInfo storage user = userInfo[pid][msg.sender];
+        int accumulatedBoo = int(user.amount * pool.accBooPerShare / ACC_BOO_PRECISION);
+        uint _pendingBoo = uint256(accumulatedBoo - user.rewardDebt);
 
         // Effects
-        /*console.log("withdrawing");
-        console.log(user.rewardDebt);
-        console.log(amount);
-        console.log(pool.accBooPerShare);
-        console.log(amount * pool.accBooPerShare / ACC_BOO_PRECISION);*/
-        user.rewardDebt = user.rewardDebt - int256(amount * pool.accBooPerShare / ACC_BOO_PRECISION);
+        user.rewardDebt = accumulatedBoo - int256(amount * pool.accBooPerShare / ACC_BOO_PRECISION);
         user.amount = user.amount - amount;
         
         // Interactions
+        BOO.safeTransfer(to, _pendingBoo);
+
         IRewarder[] memory _rewarders = rewarders[pid];
         IRewarder _rewarder;
         for (uint256 i = 0; i < _rewarders.length; i++) {
             _rewarder = _rewarders[i];
             if (address(_rewarder) != address(0)) {
-                _rewarder.onReward(pid, to, to, 0, user.amount);
+                _rewarder.onReward(pid, msg.sender, to, _pendingBoo, user.amount);
             }
         }
 
         lpToken[pid].safeTransfer(to, amount);
 
         emit Withdraw(msg.sender, pid, amount, to);
+        emit Harvest(msg.sender, pid, _pendingBoo);
     }
 
     /// @notice Harvest proceeds for transaction sender to `to`.

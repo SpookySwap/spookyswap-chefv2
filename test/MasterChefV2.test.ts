@@ -32,7 +32,10 @@ describe("MasterChefV2", function () {
     await this.chef2.init(this.dummy.address)
     await this.rlp.transfer(this.bob.address, getBigNumber(1))
 
-    //await this.rewarder. //NEED TO ADD REWARDS TO REWARDER HERE
+    await this.rewarder.add(5, 0)
+    await this.rewarder.add(5, 1)
+    await this.rewarder.add(5, 2)
+    await this.rewarder.add(5, 3)
   })
 
   describe("Init", function () {

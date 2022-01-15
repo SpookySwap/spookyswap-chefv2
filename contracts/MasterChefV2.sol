@@ -30,7 +30,7 @@ contract MasterChefV2 is Ownable {
     /// `allocPoint` The amount of allocation points assigned to the pool.
     /// Also known as the amount of BOO to distribute per second.
     struct PoolInfo {
-        uint accBooPerShare;
+        uint128 accBooPerShare;
         uint64 lastRewardTime;
         uint64 allocPoint;
     }
@@ -119,8 +119,8 @@ contract MasterChefV2 is Ownable {
         }
 
         poolInfo.push(PoolInfo({
-            allocPoint: allocPoint,
-            lastRewardTime: lastRewardTime,
+            allocPoint: uint64(allocPoint),
+            lastRewardTime: uint64(lastRewardTime),
             accBooPerShare: 0
         }));
         emit LogPoolAddition(lpToken.length - 1, allocPoint, _lpToken, _rewarders);
@@ -137,7 +137,7 @@ contract MasterChefV2 is Ownable {
         }
 
         totalAllocPoint = totalAllocPoint - poolInfo[_pid].allocPoint + _allocPoint;
-        poolInfo[_pid].allocPoint = _allocPoint;
+        poolInfo[_pid].allocPoint = uint64(_allocPoint);
         if (overwrite) {
             delete rewarders[_pid];
             for (uint256 i = 0; i < _rewarders.length; i++) {
@@ -159,7 +159,7 @@ contract MasterChefV2 is Ownable {
         if (block.timestamp > pool.lastRewardTime && lpSupply != 0) {
             uint multiplier = block.timestamp - pool.lastRewardTime;
             uint booReward = (multiplier * booPerSecond() * pool.allocPoint) / totalAllocPoint;
-            accBooPerShare += (booReward * ACC_BOO_PRECISION / lpSupply);
+            accBooPerShare = accBooPerShare + (booReward * ACC_BOO_PRECISION / lpSupply);
         }
         pending = (user.amount * accBooPerShare / ACC_BOO_PRECISION) - user.rewardDebt;
     }
@@ -198,7 +198,7 @@ contract MasterChefV2 is Ownable {
                 uint multiplier = block.timestamp - pool.lastRewardTime;
                 uint booReward = (multiplier * booPerSecond() * pool.allocPoint) / totalAllocPoint;
                 harvestFromMasterChef();
-                pool.accBooPerShare += (booReward * ACC_BOO_PRECISION) / lpSupply;
+                pool.accBooPerShare = uint128(pool.accBooPerShare + ((booReward * ACC_BOO_PRECISION) / lpSupply));
             }
             pool.lastRewardTime = uint64(block.timestamp);
             poolInfo[pid] = pool;

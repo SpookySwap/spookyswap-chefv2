@@ -11,7 +11,7 @@ interface IERC20Ext is IERC20 {
     function decimals() external returns (uint);
 }
 
-contract ComplexRewarderTime is IRewarder,  Ownable{
+contract ComplexRewarder is IRewarder,  Ownable{
     using SafeERC20 for IERC20;
 
     IERC20 public immutable rewardToken;
@@ -53,7 +53,7 @@ contract ComplexRewarderTime is IRewarder,  Ownable{
     event LogSetPool(uint indexed pid, uint allocPoint);
     event LogUpdatePool(uint indexed pid, uint lastRewardTime, uint lpSupply, uint accRewardPerShare);
     event LogRewardPerSecond(uint rewardPerSecond);
-    event AdminTokenRecovery(address _tokenAddress, uint _amt);
+    event AdminTokenRecovery(address _tokenAddress, uint _amt, address _adr);
     event LogInit();
 
     modifier onlyMCV2 {
@@ -112,9 +112,11 @@ contract ComplexRewarderTime is IRewarder,  Ownable{
     /// DO NOT add the same LP token more than once. Rewards will be messed up if you do.
     /// @param allocPoint AP of the new pool.
     /// @param _pid Pid on MCV2
-    function add(uint allocPoint, uint _pid) public onlyOwner {
+    function add(uint allocPoint, uint _pid, bool _update) public onlyOwner {
         require(poolInfo[_pid].lastRewardTime == 0, "Pool already exists");
-        massUpdatePools();
+        if (_update) {
+            massUpdatePools();
+        }
         uint lastRewardTime = block.timestamp;
         totalAllocPoint = totalAllocPoint + allocPoint;
 
@@ -130,8 +132,10 @@ contract ComplexRewarderTime is IRewarder,  Ownable{
     /// @notice Update the given pool's REWARD allocation point and `IRewarder` contract. Can only be called by the owner.
     /// @param _pid The index of the pool. See `poolInfo`.
     /// @param _allocPoint New AP of the pool.
-    function set(uint _pid, uint _allocPoint) public onlyOwner {
-        massUpdatePools();
+    function set(uint _pid, uint _allocPoint, bool _update) public onlyOwner {
+        if (_update) {
+            massUpdatePools();
+        }
         totalAllocPoint = totalAllocPoint - poolInfo[_pid].allocPoint + _allocPoint;
         poolInfo[_pid].allocPoint = _allocPoint;
         emit LogSetPool(_pid, _allocPoint);
@@ -182,10 +186,10 @@ contract ComplexRewarderTime is IRewarder,  Ownable{
         }
     }
 
-    function recoverTokens(address _tokenAddress, uint _amt) external onlyOwner {        
-        IERC20(_tokenAddress).safeTransfer(address(msg.sender), _amt);
+    function recoverTokens(address _tokenAddress, uint _amt, address _adr) external onlyOwner {        
+        IERC20(_tokenAddress).safeTransfer(_adr, _amt);
 
-        emit AdminTokenRecovery(_tokenAddress, _amt);
+        emit AdminTokenRecovery(_tokenAddress, _amt, _adr);
     }
 
 }

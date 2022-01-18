@@ -61,7 +61,7 @@ contract MasterChefV2 is Ownable {
     /// @dev Last MCV1 harvest timestamp.
     uint public lastV1HarvestTimestamp;
     /// @dev How often v1 harvest should be called by the query function
-    uint private V1_HARVEST_QUERY_TIME = 1 days;
+    uint public V1_HARVEST_QUERY_TIME = 1 days;
 
     event Deposit(address indexed user, uint indexed pid, uint amount, address indexed to);
     event Withdraw(address indexed user, uint indexed pid, uint amount, address indexed to);

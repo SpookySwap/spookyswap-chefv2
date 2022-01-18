@@ -2,19 +2,19 @@
   {
     "inputs": [
       {
-        "internalType": "contract IMasterChef",
-        "name": "_MASTER_CHEF",
-        "type": "address"
-      },
-      {
-        "internalType": "contract IERC20",
-        "name": "_boo",
+        "internalType": "contract IERC20Ext",
+        "name": "_rewardToken",
         "type": "address"
       },
       {
         "internalType": "uint256",
-        "name": "_MASTER_PID",
+        "name": "_rewardPerSecond",
         "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "_MASTERCHEF_V2",
+        "type": "address"
       }
     ],
     "stateMutability": "nonpayable",
@@ -24,87 +24,25 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": true,
+        "indexed": false,
         "internalType": "address",
-        "name": "user",
+        "name": "_tokenAddress",
         "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "pid",
-        "type": "uint256"
       },
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "to",
-        "type": "address"
-      }
-    ],
-    "name": "Deposit",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "pid",
+        "name": "_amt",
         "type": "uint256"
       },
       {
         "indexed": false,
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
         "internalType": "address",
-        "name": "to",
+        "name": "_adr",
         "type": "address"
       }
     ],
-    "name": "EmergencyWithdraw",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "pid",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "Harvest",
+    "name": "AdminTokenRecovery",
     "type": "event"
   },
   {
@@ -118,6 +56,12 @@
     "inputs": [
       {
         "indexed": true,
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": true,
         "internalType": "uint256",
         "name": "pid",
         "type": "uint256"
@@ -125,23 +69,17 @@
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "allocPoint",
+        "name": "amount",
         "type": "uint256"
       },
       {
         "indexed": true,
-        "internalType": "contract IERC20",
-        "name": "lpToken",
+        "internalType": "address",
+        "name": "to",
         "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "contract IRewarder[]",
-        "name": "rewarder",
-        "type": "address[]"
       }
     ],
-    "name": "LogPoolAddition",
+    "name": "LogOnReward",
     "type": "event"
   },
   {
@@ -158,18 +96,38 @@
         "internalType": "uint256",
         "name": "allocPoint",
         "type": "uint256"
-      },
+      }
+    ],
+    "name": "LogPoolAddition",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "rewardPerSecond",
+        "type": "uint256"
+      }
+    ],
+    "name": "LogRewardPerSecond",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
       {
         "indexed": true,
-        "internalType": "contract IRewarder[]",
-        "name": "rewarders",
-        "type": "address[]"
+        "internalType": "uint256",
+        "name": "pid",
+        "type": "uint256"
       },
       {
         "indexed": false,
-        "internalType": "bool",
-        "name": "overwrite",
-        "type": "bool"
+        "internalType": "uint256",
+        "name": "allocPoint",
+        "type": "uint256"
       }
     ],
     "name": "LogSetPool",
@@ -199,7 +157,7 @@
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "accBooPerShare",
+        "name": "accRewardPerShare",
         "type": "uint256"
       }
     ],
@@ -226,78 +184,8 @@
     "type": "event"
   },
   {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "pid",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "to",
-        "type": "address"
-      }
-    ],
-    "name": "Withdraw",
-    "type": "event"
-  },
-  {
     "inputs": [],
-    "name": "BOO",
-    "outputs": [
-      {
-        "internalType": "contract IERC20",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "MASTER_CHEF",
-    "outputs": [
-      {
-        "internalType": "contract IMasterChef",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "MASTER_PID",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "V1_HARVEST_QUERY_TIME",
+    "name": "ACC_TOKEN_PRECISION",
     "outputs": [
       {
         "internalType": "uint256",
@@ -311,23 +199,18 @@
   {
     "inputs": [
       {
-        "internalType": "uint64",
+        "internalType": "uint256",
         "name": "allocPoint",
-        "type": "uint64"
+        "type": "uint256"
       },
       {
-        "internalType": "contract IERC20",
-        "name": "_lpToken",
-        "type": "address"
-      },
-      {
-        "internalType": "contract IRewarder[]",
-        "name": "_rewarders",
-        "type": "address[]"
+        "internalType": "uint256",
+        "name": "_pid",
+        "type": "uint256"
       },
       {
         "internalType": "bool",
-        "name": "update",
+        "name": "_update",
         "type": "bool"
       }
     ],
@@ -338,145 +221,40 @@
   },
   {
     "inputs": [],
-    "name": "booPerSecond",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "pid",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "to",
-        "type": "address"
-      }
-    ],
-    "name": "deposit",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "pid",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "to",
-        "type": "address"
-      }
-    ],
-    "name": "emergencyWithdraw",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "harvestFromMasterChef",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "contract IERC20",
-        "name": "dummyToken",
-        "type": "address"
-      }
-    ],
-    "name": "init",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "isLpToken",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "lastV1HarvestTimestamp",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "lpToken",
-    "outputs": [
-      {
-        "internalType": "contract IERC20",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "massUpdateAllPools",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256[]",
-        "name": "pids",
-        "type": "uint256[]"
-      }
-    ],
     "name": "massUpdatePools",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_pid",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "_user",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_amt",
+        "type": "uint256"
+      }
+    ],
+    "name": "onReward",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -507,11 +285,64 @@
         "type": "address"
       }
     ],
-    "name": "pendingBoo",
+    "name": "pendingToken",
     "outputs": [
       {
         "internalType": "uint256",
         "name": "pending",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "pid",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "pendingTokens",
+    "outputs": [
+      {
+        "internalType": "contract IERC20[]",
+        "name": "rewardTokens",
+        "type": "address[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "rewardAmounts",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "poolIds",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
     ],
@@ -529,19 +360,19 @@
     "name": "poolInfo",
     "outputs": [
       {
-        "internalType": "uint128",
-        "name": "accBooPerShare",
-        "type": "uint128"
+        "internalType": "uint256",
+        "name": "accRewardPerShare",
+        "type": "uint256"
       },
       {
-        "internalType": "uint64",
+        "internalType": "uint256",
         "name": "lastRewardTime",
-        "type": "uint64"
+        "type": "uint256"
       },
       {
-        "internalType": "uint64",
+        "internalType": "uint256",
         "name": "allocPoint",
-        "type": "uint64"
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -561,8 +392,24 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "queryHarvestFromMasterChef",
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_tokenAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_amt",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "_adr",
+        "type": "address"
+      }
+    ],
+    "name": "recoverTokens",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -575,22 +422,24 @@
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      },
+    "inputs": [],
+    "name": "rewardPerSecond",
+    "outputs": [
       {
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
       }
     ],
-    "name": "rewarders",
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "rewardToken",
     "outputs": [
       {
-        "internalType": "contract IRewarder",
+        "internalType": "contract IERC20",
         "name": "",
         "type": "address"
       }
@@ -606,23 +455,13 @@
         "type": "uint256"
       },
       {
-        "internalType": "uint64",
+        "internalType": "uint256",
         "name": "_allocPoint",
-        "type": "uint64"
-      },
-      {
-        "internalType": "contract IRewarder[]",
-        "name": "_rewarders",
-        "type": "address[]"
+        "type": "uint256"
       },
       {
         "internalType": "bool",
-        "name": "overwrite",
-        "type": "bool"
-      },
-      {
-        "internalType": "bool",
-        "name": "update",
+        "name": "_update",
         "type": "bool"
       }
     ],
@@ -635,31 +474,13 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "newTime",
+        "name": "_rewardPerSecond",
         "type": "uint256"
-      },
-      {
-        "internalType": "bool",
-        "name": "inDays",
-        "type": "bool"
       }
     ],
-    "name": "setV1HarvestQueryTime",
+    "name": "setRewardPerSecond",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "totalAllocPoint",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -688,22 +509,22 @@
       {
         "components": [
           {
-            "internalType": "uint128",
-            "name": "accBooPerShare",
-            "type": "uint128"
+            "internalType": "uint256",
+            "name": "accRewardPerShare",
+            "type": "uint256"
           },
           {
-            "internalType": "uint64",
+            "internalType": "uint256",
             "name": "lastRewardTime",
-            "type": "uint64"
+            "type": "uint256"
           },
           {
-            "internalType": "uint64",
+            "internalType": "uint256",
             "name": "allocPoint",
-            "type": "uint64"
+            "type": "uint256"
           }
         ],
-        "internalType": "struct MasterChefV2.PoolInfo",
+        "internalType": "struct ComplexRewarder.PoolInfo",
         "name": "pool",
         "type": "tuple"
       }
@@ -738,29 +559,6 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "pid",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "to",
-        "type": "address"
-      }
-    ],
-    "name": "withdraw",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   }
 ]

@@ -1,5 +1,5 @@
-import { ADDRESS_ZERO, advanceBlock, advanceBlockTo, deploy, getBigNumber, prepare, advanceTimeAndBlock, timestamp } from "./utilities"
-import { assert, expect } from "chai"
+import { ADDRESS_ZERO, deploy, getBigNumber, prepare, advanceTimeAndBlock, timestamp } from "./utilities"
+import { expect } from "chai"
 
 describe("MasterChefV2", function () {
   before(async function () {
@@ -26,16 +26,14 @@ describe("MasterChefV2", function () {
       ["chef2", this.MasterChefV2, [this.chef.address, this.Boo.address, 1]],
       ["rlp", this.ERC20Mock, ["LP", "rLPT", getBigNumber(10)]],
       ["r", this.ERC20Mock, ["Reward", "RewardT", getBigNumber(100000)]],
+      ["r2", this.ERC20Mock, ["Reward2", "RewardT2", getBigNumber(100000)]],
     ])
     await deploy(this, [["rewarder", this.ComplexRewarder, [this.r.address, getBigNumber(50), this.chef2.address]]])
+    await deploy(this, [["rewarder2", this.ComplexRewarder, [this.r2.address, getBigNumber(50), this.chef2.address]]])
     await this.dummy.approve(this.chef2.address, getBigNumber(10))
     await this.chef2.init(this.dummy.address)
     await this.rlp.transfer(this.bob.address, getBigNumber(1))
 
-    // await this.rewarder.add(5, 0)
-    // await this.rewarder.add(5, 1)
-    // await this.rewarder.add(5, 2)
-    // await this.rewarder.add(5, 3)
   })
 
   describe("Init", function () {
@@ -54,9 +52,9 @@ describe("MasterChefV2", function () {
   describe("Set", function () {
     it("Should emit event LogSetPool", async function () {
       await this.chef2.add(10, this.rlp.address, [this.rewarder.address], false)
-      await expect(this.chef2.set(0, 10, [this.rewarder.address], true, true))
+      await expect(await this.chef2.set(0, 10, [this.rewarder.address], false, true))
         .to.emit(this.chef2, "LogSetPool")
-        .withArgs(0, 10, [this.rewarder.address], true, true)
+        .withArgs(0, 10, [this.rewarder.address], false, true)
     })
 
     it("Should revert if invalid pool", async function () {
@@ -64,7 +62,7 @@ describe("MasterChefV2", function () {
     })
   })
 
-  describe("PendingBoo", function () {
+  describe("PendingTokens", function () {
     it("PendingBoo should equal ExpectedBoo", async function () {
       await this.chef2.add(10, this.rlp.address, [this.rewarder.address], false)
       await this.rlp.approve(this.chef2.address, getBigNumber(10))
@@ -82,14 +80,31 @@ describe("MasterChefV2", function () {
       let pendingBoo = await this.chef2.pendingBoo(0, this.alice.address)
       expect(pendingBoo).to.be.equal(expectedBoo) // 50
     })
+    it("PendingReward should equal ExpectedReward", async function () {
+      await this.chef2.add(10, this.rlp.address, [this.rewarder.address], false)
+      await this.r.transfer(this.rewarder.address, getBigNumber(100000))
+      await this.rewarder.add(10, 0, false)
+      await this.rlp.approve(this.chef2.address, getBigNumber(10))
+      let log = await this.chef2.deposit(0, getBigNumber(1), this.alice.address)
+      await advanceTimeAndBlock(10)
+      let log2 = await this.chef2.updatePool(0)
+
+      let time1 = await timestamp(log.blockNumber)
+      let time2 = await timestamp(log2.blockNumber)
+
+      let expectedReward = getBigNumber(50)
+        .mul(time2 - time1)
+
+      let pendingreward = await this.rewarder.pendingToken(0, this.alice.address)
+      expect(pendingreward).to.be.equal(expectedReward) // 50
+    })
   })
 
   describe("MassUpdatePools", function () {
     it("Should call updatePool", async function () {
       await this.chef2.add(10, this.rlp.address, [this.rewarder.address], false)
       await advanceTimeAndBlock(10)
-      await this.chef2.massUpdatePools([0]) // .to.emit(this.chefv2, "LogUpdatePool")
-      
+      await expect(this.chef2.massUpdatePools([0])).to.not.be.reverted
     })
 
     it("Updating invalid pools should fail", async function () {
@@ -131,10 +146,12 @@ describe("MasterChefV2", function () {
   })
 
   describe("Harvest", function () {
-    it("Should give back the correct amount of Boo and reward", async function () {
+    it("Should give back the correct amount of Boo and reward and reward2", async function () {
       await this.r.transfer(this.rewarder.address, getBigNumber(100000))
+      await this.r2.transfer(this.rewarder2.address, getBigNumber(100000))
       await this.rewarder.add(10, 0, false)
-      await this.chef2.add(10, this.rlp.address, [this.rewarder.address], false)
+      await this.rewarder2.add(10, 0, false)
+      await this.chef2.add(10, this.rlp.address, [this.rewarder.address, this.rewarder2.address], false)
       await this.rlp.approve(this.chef2.address, getBigNumber(10))
       expect(await this.chef2.lpToken(0)).to.be.equal(this.rlp.address)
       let log = await this.chef2.deposit(0, getBigNumber(1), this.alice.address)
@@ -147,10 +164,10 @@ describe("MasterChefV2", function () {
       let expectedBoo = getBigNumber(100)
         .mul(time2 - time1)
         .div(2)
-      // expect((await this.chef2.userInfo(0, this.alice.address)).rewardDebt).to.be.equal("-" + expectedBoo)
-      // await this.chef2.withdraw(0, 0, this.alice.address)
+
       expect(await this.Boo.balanceOf(this.alice.address))
         .to.be.equal(await this.r.balanceOf(this.alice.address))
+        .to.be.equal(await this.r2.balanceOf(this.alice.address))
         .to.be.equal(expectedBoo)
     })
     it("Harvest with empty user balance", async function () {
@@ -172,8 +189,7 @@ describe("MasterChefV2", function () {
       let expectedBoo = getBigNumber(100)
         .mul(time2 - time1)
         .div(2)
-      // expect((await this.chef2.userInfo(0, this.alice.address)).rewardDebt).to.be.equal("-" + expectedBoo)
-      // await this.chef2.withdraw(0, 0, this.alice.address)
+
       expect(await this.Boo.balanceOf(this.alice.address)).to.be.equal(expectedBoo)
     })
   })

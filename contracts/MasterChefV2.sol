@@ -67,8 +67,8 @@ contract MasterChefV2 is Ownable {
     event Withdraw(address indexed user, uint indexed pid, uint amount, address indexed to);
     event EmergencyWithdraw(address indexed user, uint indexed pid, uint amount, address indexed to);
     event Harvest(address indexed user, uint indexed pid, uint amount);
-    event LogPoolAddition(uint indexed pid, uint allocPoint, IERC20 indexed lpToken, IRewarder[] indexed rewarder, bool update);
-    event LogSetPool(uint indexed pid, uint allocPoint, IRewarder[] indexed rewarders, bool overwrite, bool update);
+    event LogPoolAddition(uint indexed pid, uint allocPoint, IERC20 indexed lpToken, IRewarder[] rewarders, bool update);
+    event LogSetPool(uint indexed pid, uint allocPoint, IRewarder[] rewarders, bool overwrite, bool update);
     event LogUpdatePool(uint indexed pid, uint lastRewardTime, uint lpSupply, uint accBooPerShare);
     event LogInit();
 

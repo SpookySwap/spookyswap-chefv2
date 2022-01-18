@@ -22,6 +22,11 @@ export async function latest() {
   return BigNumber.from(block.timestamp)
 }
 
+export async function timestamp(blocknumber) {
+  const block = await ethers.provider.getBlock(blocknumber)
+  return block.timestamp
+}
+
 export async function advanceTimeAndBlock(time) {
   await advanceTime(time)
   await advanceBlock()

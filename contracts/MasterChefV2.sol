@@ -67,8 +67,8 @@ contract MasterChefV2 is Ownable {
     event Withdraw(address indexed user, uint indexed pid, uint amount, address indexed to);
     event EmergencyWithdraw(address indexed user, uint indexed pid, uint amount, address indexed to);
     event Harvest(address indexed user, uint indexed pid, uint amount);
-    event LogPoolAddition(uint indexed pid, uint allocPoint, IERC20 indexed lpToken, IRewarder[] indexed rewarder);
-    event LogSetPool(uint indexed pid, uint allocPoint, IRewarder[] indexed rewarders, bool overwrite);
+    event LogPoolAddition(uint indexed pid, uint allocPoint, IERC20 indexed lpToken, IRewarder[] indexed rewarder, bool update);
+    event LogSetPool(uint indexed pid, uint allocPoint, IRewarder[] indexed rewarders, bool overwrite, bool update);
     event LogUpdatePool(uint indexed pid, uint lastRewardTime, uint lpSupply, uint accBooPerShare);
     event LogInit();
 
@@ -128,7 +128,7 @@ contract MasterChefV2 is Ownable {
             lastRewardTime: uint64(lastRewardTime),
             accBooPerShare: 0
         }));
-        emit LogPoolAddition(lpToken.length - 1, allocPoint, _lpToken, _rewarders);
+        emit LogPoolAddition(lpToken.length - 1, allocPoint, _lpToken, _rewarders, update);
     }
 
     /// @notice Update the given pool's BOO allocation point and `IRewarder` contract. Can only be called by the owner.
@@ -149,7 +149,7 @@ contract MasterChefV2 is Ownable {
                 rewarders[_pid].push(_rewarders[i]);
             } 
         }
-        emit LogSetPool(_pid, _allocPoint, overwrite ? _rewarders : rewarders[_pid], overwrite);
+        emit LogSetPool(_pid, _allocPoint, overwrite ? _rewarders : rewarders[_pid], overwrite, update);
     }
 
     /// @notice View function to see pending BOO on frontend.

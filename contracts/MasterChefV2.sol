@@ -124,8 +124,8 @@ contract MasterChefV2 is Ownable {
         }
 
         poolInfo.push(PoolInfo({
-            allocPoint: uint64(allocPoint),
-            lastRewardTime: uint64(lastRewardTime),
+            allocPoint: allocPoint,
+            lastRewardTime: lastRewardTime,
             accBooPerShare: 0
         }));
         emit LogPoolAddition(lpToken.length - 1, allocPoint, _lpToken, _rewarders, update);
@@ -142,7 +142,7 @@ contract MasterChefV2 is Ownable {
         }
 
         totalAllocPoint = totalAllocPoint - poolInfo[_pid].allocPoint + _allocPoint;
-        poolInfo[_pid].allocPoint = uint64(_allocPoint);
+        poolInfo[_pid].allocPoint = _allocPoint;
         if (overwrite) {
             delete rewarders[_pid];
             for (uint256 i = 0; i < _rewarders.length; i++) {

@@ -120,11 +120,10 @@ contract ComplexRewarder is IRewarder,  Ownable{
         uint64 lastRewardTime = uint64(block.timestamp);
         totalAllocPoint = totalAllocPoint + allocPoint;
 
-        poolInfo[_pid] = PoolInfo({
-            allocPoint: allocPoint,
-            lastRewardTime: lastRewardTime,
-            accRewardPerShare: 0
-        });
+        PoolInfo storage poolinfo = poolInfo[_pid];
+        poolinfo.allocPoint = allocPoint;
+        poolinfo.lastRewardTime = lastRewardTime;
+        poolinfo.accRewardPerShare = 0;
         poolIds.push(_pid);
         emit LogPoolAddition(_pid, allocPoint);
     }

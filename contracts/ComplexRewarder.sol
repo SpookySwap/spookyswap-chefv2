@@ -28,9 +28,9 @@ contract ComplexRewarder is IRewarder,  Ownable{
     /// `allocPoint` The amount of allocation points assigned to the pool.
     /// Also known as the amount of REWARD to distribute per block.
     struct PoolInfo {
-        uint accRewardPerShare;
-        uint lastRewardTime;
-        uint allocPoint;
+        uint128 accRewardPerShare;
+        uint64 lastRewardTime;
+        uint64 allocPoint;
     }
 
     /// @notice Info of each pool.
@@ -112,12 +112,12 @@ contract ComplexRewarder is IRewarder,  Ownable{
     /// DO NOT add the same LP token more than once. Rewards will be messed up if you do.
     /// @param allocPoint AP of the new pool.
     /// @param _pid Pid on MCV2
-    function add(uint allocPoint, uint _pid, bool _update) public onlyOwner {
+    function add(uint64 allocPoint, uint _pid, bool _update) public onlyOwner {
         require(poolInfo[_pid].lastRewardTime == 0, "Pool already exists");
         if (_update) {
             massUpdatePools();
         }
-        uint lastRewardTime = block.timestamp;
+        uint64 lastRewardTime = uint64(block.timestamp);
         totalAllocPoint = totalAllocPoint + allocPoint;
 
         poolInfo[_pid] = PoolInfo({
@@ -132,7 +132,7 @@ contract ComplexRewarder is IRewarder,  Ownable{
     /// @notice Update the given pool's REWARD allocation point and `IRewarder` contract. Can only be called by the owner.
     /// @param _pid The index of the pool. See `poolInfo`.
     /// @param _allocPoint New AP of the pool.
-    function set(uint _pid, uint _allocPoint, bool _update) public onlyOwner {
+    function set(uint _pid, uint64 _allocPoint, bool _update) public onlyOwner {
         if (_update) {
             massUpdatePools();
         }
@@ -178,9 +178,9 @@ contract ComplexRewarder is IRewarder,  Ownable{
             if (lpSupply > 0) {
                 uint time = block.timestamp - pool.lastRewardTime;
                 uint reward = time * rewardPerSecond * pool.allocPoint / totalAllocPoint;
-                pool.accRewardPerShare = pool.accRewardPerShare + (reward * ACC_TOKEN_PRECISION / lpSupply);
+                pool.accRewardPerShare = pool.accRewardPerShare + uint128(reward * ACC_TOKEN_PRECISION / lpSupply);
             }
-            pool.lastRewardTime = block.timestamp;
+            pool.lastRewardTime = uint64(block.timestamp);
             poolInfo[pid] = pool;
             emit LogUpdatePool(pid, pool.lastRewardTime, lpSupply, pool.accRewardPerShare);
         }

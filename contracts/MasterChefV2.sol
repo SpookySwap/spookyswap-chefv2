@@ -43,9 +43,11 @@ contract MasterChefV2 is Ownable {
     uint public immutable MASTER_PID;
 
     /// @notice Info of each MCV2 pool.
-    PoolInfo[] public poolInfo;
+    mapping (uint => PoolInfo) public poolInfo;
     /// @notice Address of the LP token for each MCV2 pool.
-    IERC20[] public lpToken;
+    mapping (uint => IERC20) public lpToken;
+    /// @notice Amount of pool infos and their respective lpToken entries I.E stores last ID + 1, for above two mappings
+    uint public poolInfoAmount;
     /// @notice Is an address contained in the above `lpToken` array
     mapping(address => bool) public isLpToken;
     /// @notice Address of each `IRewarder` contract in MCV2.
@@ -96,7 +98,7 @@ contract MasterChefV2 is Ownable {
 
     /// @notice Returns the number of MCV2 pools.
     function poolLength() public view returns (uint pools) {
-        pools = poolInfo.length;
+        pools = poolInfoAmount;
     }
 
     function checkForDuplicate(IERC20 _lpToken) internal view {
@@ -107,28 +109,31 @@ contract MasterChefV2 is Ownable {
     /// @param allocPoint AP of the new pool.
     /// @param _lpToken Address of the LP ERC-20 token.
     /// @param _rewarders Addresses of the rewarder delegate(s).
-    function add(uint64 allocPoint, IERC20 _lpToken, IRewarder[] memory _rewarders, bool update) public onlyOwner {
+    function add(uint64 allocPoint, IERC20 _lpToken, IRewarder[] memory _rewarders, bool update) external onlyOwner {
         checkForDuplicate(_lpToken);
 
         if (update) {
             massUpdateAllPools();
         }
 
+        uint pid = poolInfoAmount;
         uint64 lastRewardTime = uint64(block.timestamp);
         totalAllocPoint = totalAllocPoint + allocPoint;
-        lpToken.push(_lpToken);
+        lpToken[pid] = _lpToken;
         isLpToken[address(_lpToken)] = true;
-        uint pid = lpToken.length - 1;
+
         for (uint256 i = 0; i < _rewarders.length; i++) {
             rewarders[pid].push(_rewarders[i]);
         }
 
-        poolInfo.push(PoolInfo({
-            allocPoint: allocPoint,
-            lastRewardTime: lastRewardTime,
-            accBooPerShare: 0
-        }));
-        emit LogPoolAddition(lpToken.length - 1, allocPoint, _lpToken, _rewarders, update);
+        PoolInfo storage poolinfo = poolInfo[pid];
+        poolinfo.allocPoint = allocPoint;
+        poolinfo.lastRewardTime = lastRewardTime;
+        poolinfo.accBooPerShare = 0;
+
+        poolInfoAmount = poolInfoAmount + 1;
+
+        emit LogPoolAddition(poolInfoAmount - 1, allocPoint, _lpToken, _rewarders, update);
     }
 
     /// @notice Update the given pool's BOO allocation point and `IRewarder` contract. Can only be called by the owner.
@@ -136,7 +141,7 @@ contract MasterChefV2 is Ownable {
     /// @param _allocPoint New AP of the pool.
     /// @param _rewarders Addresses of the rewarder delegates.
     /// @param overwrite True if _rewarders should be `set`. Otherwise `_rewarders` is ignored.
-    function set(uint _pid, uint64 _allocPoint, IRewarder[] memory _rewarders, bool overwrite, bool update) public onlyOwner {
+    function set(uint _pid, uint64 _allocPoint, IRewarder[] memory _rewarders, bool overwrite, bool update) external validatePid(_pid) onlyOwner {
         if (update) {
             massUpdateAllPools();
         }
@@ -147,7 +152,7 @@ contract MasterChefV2 is Ownable {
             delete rewarders[_pid];
             for (uint256 i = 0; i < _rewarders.length; i++) {
                 rewarders[_pid].push(_rewarders[i]);
-            } 
+            }
         }
         emit LogSetPool(_pid, _allocPoint, overwrite ? _rewarders : rewarders[_pid], overwrite, update);
     }
@@ -156,7 +161,7 @@ contract MasterChefV2 is Ownable {
     /// @param _pid The index of the pool. See `poolInfo`.
     /// @param _user Address of user.
     /// @return pending BOO reward for a given user.
-    function pendingBoo(uint _pid, address _user) external view returns (uint pending) {
+    function pendingBoo(uint _pid, address _user) external view validatePid(_pid) returns (uint pending) {
         PoolInfo memory pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
         uint accBooPerShare = pool.accBooPerShare;
@@ -174,16 +179,16 @@ contract MasterChefV2 is Ownable {
     function massUpdatePools(uint256[] calldata pids) external {
         uint256 len = pids.length;
         for (uint256 i = 0; i < len; ++i) {
-            updatePool(pids[i]);
+            _updatePool(pids[i]);
         }
     }
 
     // @notice Update reward variables for all pools. Be careful of gas spending!
     // @warning This function should never be called from a smart contract as it has an unbounded gas cost.
     function massUpdateAllPools() public {
-        uint len = poolInfo.length;
+        uint len = poolInfoAmount;
         for (uint pid = 0; pid < len; ++pid) {
-            updatePool(pid);
+            _updatePool(pid);
         }
     }
 
@@ -195,7 +200,7 @@ contract MasterChefV2 is Ownable {
     /// @notice Update reward variables of the given pool.
     /// @param pid The index of the pool. See `poolInfo`.
     /// @return pool Returns the pool that was updated.
-    function updatePool(uint pid) public returns (PoolInfo memory pool) {
+    function _updatePool(uint pid) internal validatePid(pid) returns (PoolInfo memory pool) {
         pool = poolInfo[pid];
         if (block.timestamp > pool.lastRewardTime) {
             uint lpSupply = lpToken[pid].balanceOf(address(this));
@@ -211,21 +216,22 @@ contract MasterChefV2 is Ownable {
         }
     }
 
+    function updatePool(uint pid) external returns (PoolInfo memory pool) {
+        return _updatePool(pid);
+    }
+
+
     /// @notice Deposit LP tokens to MCV2 for BOO allocation.
     /// @param pid The index of the pool. See `poolInfo`.
     /// @param amount LP token amount to deposit.
     /// @param to The receiver of `amount` deposit benefit.
-    function deposit(uint pid, uint amount, address to) public {
-        PoolInfo memory pool = updatePool(pid);
+    function deposit(uint pid, uint amount, address to) external validatePid(pid) {
+        PoolInfo memory pool = _updatePool(pid);
         UserInfo storage user = userInfo[pid][to];
 
         // Effects
         uint256 _pendingBoo = (user.amount * (pool.accBooPerShare / ACC_BOO_PRECISION)) - user.rewardDebt;
-        
-        /*console.log("deposit");
-        console.log(user.rewardDebt);
-        console.log(amount);
-        console.log(pool.accBooPerShare);*/
+
         user.amount += amount;
         user.rewardDebt = user.amount * pool.accBooPerShare / ACC_BOO_PRECISION;
 
@@ -244,17 +250,17 @@ contract MasterChefV2 is Ownable {
         }
 
         lpToken[pid].safeTransferFrom(msg.sender, address(this), amount);
-        
+
         emit Deposit(msg.sender, pid, amount, to);
         emit Harvest(msg.sender, pid, _pendingBoo);
     }
-    
+
     /// @notice Withdraw LP tokens from MCV2 and harvest proceeds for transaction sender to `to`.
     /// @param pid The index of the pool. See `poolInfo`.
     /// @param amount LP token amount to withdraw.
     /// @param to Receiver of the LP tokens and BOO rewards.
-    function withdraw(uint pid, uint amount, address to) public {
-        PoolInfo memory pool = updatePool(pid);
+    function withdraw(uint pid, uint amount, address to) external validatePid(pid) {
+        PoolInfo memory pool = _updatePool(pid);
         UserInfo storage user = userInfo[pid][msg.sender];
 
         require(user.amount >= amount, "withdraw: not good");
@@ -262,14 +268,9 @@ contract MasterChefV2 is Ownable {
         // Effects
         uint256 _pendingBoo = (user.amount * (pool.accBooPerShare / ACC_BOO_PRECISION)) - user.rewardDebt;
 
-        /*console.log("withdrawing");
-        console.log(user.rewardDebt);
-        console.log(amount);
-        console.log(pool.accBooPerShare);
-        console.log(amount * pool.accBooPerShare / ACC_BOO_PRECISION);*/
         user.amount -= amount;
         user.rewardDebt = user.amount * pool.accBooPerShare / ACC_BOO_PRECISION;
-        
+
         // Interactions
         if (_pendingBoo != 0) {
             BOO.safeTransfer(to, _pendingBoo);
@@ -312,7 +313,7 @@ contract MasterChefV2 is Ownable {
     /// @notice Withdraw without caring about rewards. EMERGENCY ONLY.
     /// @param pid The index of the pool. See `poolInfo`.
     /// @param to Receiver of the LP tokens.
-    function emergencyWithdraw(uint pid, address to) public {
+    function emergencyWithdraw(uint pid, address to) external validatePid(pid) {
         UserInfo storage user = userInfo[pid][msg.sender];
         uint amount = user.amount;
         user.amount = 0;
@@ -321,5 +322,10 @@ contract MasterChefV2 is Ownable {
         // Note: transfer can fail or succeed if `amount` is zero.
         lpToken[pid].safeTransfer(to, amount);
         emit EmergencyWithdraw(msg.sender, pid, amount, to);
+    }
+
+    modifier validatePid(uint256 pid) {
+        require(pid < poolInfoAmount, "pid doesn't exist...");
+        _;
     }
 }

@@ -298,7 +298,7 @@ contract MasterChefV2 is Ownable {
         uint calc;
         uint pending;
         UserInfo storage user;
-        PoolInfo storage pool;
+        PoolInfo memory pool;
         uint totalPending;
         for (uint256 pid = 0; pid < length; ++pid) {
             user = userInfo[pid][msg.sender];
@@ -327,7 +327,7 @@ contract MasterChefV2 is Ownable {
         uint calc;
         uint pending;
         UserInfo storage user;
-        PoolInfo storage pool;
+        PoolInfo memory pool;
         uint totalPending;
         uint pid;
         for (uint256 i = 0; i < length; ++i) {
@@ -364,10 +364,7 @@ contract MasterChefV2 is Ownable {
     }
 
     function setV1HarvestQueryTime(uint256 newTime, bool inDays) external onlyOwner {
-        if(inDays)
-            V1_HARVEST_QUERY_TIME = newTime * 1 days;
-        else
-            V1_HARVEST_QUERY_TIME = newTime;
+        V1_HARVEST_QUERY_TIME = newTime * (inDays ? 1 days : 1);
     }
 
     /// @notice Withdraw without caring about rewards. EMERGENCY ONLY.

@@ -183,8 +183,8 @@ contract MasterChefV2 is Ownable {
         }
     }
 
-    // @notice Update reward variables for all pools. Be careful of gas spending!
-    // @warning This function should never be called from a smart contract as it has an unbounded gas cost.
+    /// @notice Update reward variables for all pools. Be careful of gas spending!
+    /// @dev This function should never be called from a smart contract as it has an unbounded gas cost.
     function massUpdateAllPools() public {
         uint len = poolInfoAmount;
         for (uint pid = 0; pid < len; ++pid) {
@@ -289,6 +289,66 @@ contract MasterChefV2 is Ownable {
 
         emit Withdraw(msg.sender, pid, amount, to);
         emit Harvest(msg.sender, pid, _pendingBoo);
+    }
+
+    /// @notice Batch harvest all rewards from all staked pools
+    /// @dev This function has an unbounded gas cost. Take care not to call it from other smart contracts if you don't know what you're doing.
+    function harvestAll() external {
+        uint256 length = poolInfoAmount;
+        uint calc;
+        uint pending;
+        UserInfo storage user;
+        PoolInfo storage pool;
+        uint totalPending;
+        for (uint256 pid = 0; pid < length; ++pid) {
+            user = userInfo[pid][msg.sender];
+            if (user.amount > 0) {
+                pool = poolInfo[pid];
+                _updatePool(pid);
+
+                calc = user.amount * pool.accBooPerShare / ACC_BOO_PRECISION;
+                pending = calc - user.rewardDebt;
+                user.rewardDebt = calc;
+
+                if(pending > 0) {
+                    totalPending+=pending;
+                }
+            }
+        }
+        if (totalPending > 0) {
+            BOO.safeTransfer(msg.sender, totalPending);
+        }
+    }
+
+    /// @notice Batch harvest rewards from specified staked pools
+    /// @param pids[] The array of pids of the pools you wish to harvest. See `poolInfo`.
+    function harvestMultiple(uint[] memory pids) external {
+        uint256 length = pids.length;
+        uint calc;
+        uint pending;
+        UserInfo storage user;
+        PoolInfo storage pool;
+        uint totalPending;
+        uint pid;
+        for (uint256 i = 0; i < length; ++i) {
+            pid = pids[i];
+            user = userInfo[pid][msg.sender];
+            if (user.amount > 0) {
+                pool = poolInfo[pid];
+                _updatePool(pid);
+
+                calc = user.amount * pool.accBooPerShare / ACC_BOO_PRECISION;
+                pending = calc - user.rewardDebt;
+                user.rewardDebt = calc;
+
+                if(pending > 0) {
+                    totalPending+=pending;
+                }
+            }
+        }
+        if (totalPending > 0) {
+            BOO.safeTransfer(msg.sender, totalPending);
+        }
     }
 
     /// @notice Harvests BOO from `MASTER_CHEF` MCV1 and pool `MASTER_PID` to this MCV2 contract.

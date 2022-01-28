@@ -5,6 +5,7 @@ pragma solidity 0.8.10;
 import "./interfaces/IRewarder.sol";
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
+import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import "./MasterChefV2.sol";
 
 interface IERC20Ext is IERC20 {
@@ -74,7 +75,7 @@ contract ComplexRewarder is IRewarder,  Ownable{
     }
 
 
-    function onReward (uint _pid, address _user, address _to, uint, uint _amt) onlyMCV2 override external {
+    function onReward (uint _pid, address _user, address _to, uint, uint _amt) onlyMCV2 nonReentrant override external {
         PoolInfo memory pool = updatePool(_pid);
         UserInfo storage user = userInfo[_pid][_user];
         uint pending;

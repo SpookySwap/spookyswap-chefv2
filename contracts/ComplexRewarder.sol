@@ -12,7 +12,7 @@ interface IERC20Ext is IERC20 {
     function decimals() external returns (uint);
 }
 
-contract ComplexRewarder is IRewarder,  Ownable{
+contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     IERC20 public immutable rewardToken;

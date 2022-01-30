@@ -2,7 +2,7 @@
   {
     "inputs": [
       {
-        "internalType": "contract IERC20Ext",
+        "internalType": "contract IERC20",
         "name": "_rewardToken",
         "type": "address"
       },
@@ -19,25 +19,6 @@
     ],
     "stateMutability": "nonpayable",
     "type": "constructor"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "_tokenAddress",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "_amt",
-        "type": "uint256"
-      }
-    ],
-    "name": "AdminTokenRecovery",
-    "type": "event"
   },
   {
     "anonymous": false,
@@ -138,9 +119,9 @@
       },
       {
         "indexed": false,
-        "internalType": "uint256",
+        "internalType": "uint64",
         "name": "lastRewardTime",
-        "type": "uint256"
+        "type": "uint64"
       },
       {
         "indexed": false,
@@ -151,7 +132,7 @@
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "accRewardPerShare",
+        "name": "accSushiPerShare",
         "type": "uint256"
       }
     ],
@@ -178,19 +159,6 @@
     "type": "event"
   },
   {
-    "inputs": [],
-    "name": "ACC_TOKEN_PRECISION",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
         "internalType": "uint256",
@@ -209,7 +177,13 @@
     "type": "function"
   },
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "uint256[]",
+        "name": "pids",
+        "type": "uint256[]"
+      }
+    ],
     "name": "massUpdatePools",
     "outputs": [],
     "stateMutability": "nonpayable",
@@ -219,7 +193,7 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "_pid",
+        "name": "pid",
         "type": "uint256"
       },
       {
@@ -229,7 +203,7 @@
       },
       {
         "internalType": "address",
-        "name": "_to",
+        "name": "to",
         "type": "address"
       },
       {
@@ -239,7 +213,7 @@
       },
       {
         "internalType": "uint256",
-        "name": "_amt",
+        "name": "lpToken",
         "type": "uint256"
       }
     ],
@@ -349,19 +323,19 @@
     "name": "poolInfo",
     "outputs": [
       {
-        "internalType": "uint256",
-        "name": "accRewardPerShare",
-        "type": "uint256"
+        "internalType": "uint128",
+        "name": "accSushiPerShare",
+        "type": "uint128"
       },
       {
-        "internalType": "uint256",
+        "internalType": "uint64",
         "name": "lastRewardTime",
-        "type": "uint256"
+        "type": "uint64"
       },
       {
-        "internalType": "uint256",
+        "internalType": "uint64",
         "name": "allocPoint",
-        "type": "uint256"
+        "type": "uint64"
       }
     ],
     "stateMutability": "view",
@@ -384,16 +358,21 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "_tokenAddress",
+        "name": "token",
         "type": "address"
       },
       {
         "internalType": "uint256",
-        "name": "_amt",
+        "name": "amount",
         "type": "uint256"
+      },
+      {
+        "internalType": "address payable",
+        "name": "to",
+        "type": "address"
       }
     ],
-    "name": "recoverTokens",
+    "name": "reclaimTokens",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -413,19 +392,6 @@
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "rewardToken",
-    "outputs": [
-      {
-        "internalType": "contract IERC20",
-        "name": "",
-        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -488,22 +454,22 @@
       {
         "components": [
           {
-            "internalType": "uint256",
-            "name": "accRewardPerShare",
-            "type": "uint256"
+            "internalType": "uint128",
+            "name": "accSushiPerShare",
+            "type": "uint128"
           },
           {
-            "internalType": "uint256",
+            "internalType": "uint64",
             "name": "lastRewardTime",
-            "type": "uint256"
+            "type": "uint64"
           },
           {
-            "internalType": "uint256",
+            "internalType": "uint64",
             "name": "allocPoint",
-            "type": "uint256"
+            "type": "uint64"
           }
         ],
-        "internalType": "struct ComplexRewarderTime.PoolInfo",
+        "internalType": "struct ComplexRewarderTimeDisabled.PoolInfo",
         "name": "pool",
         "type": "tuple"
       }
@@ -534,6 +500,11 @@
       {
         "internalType": "uint256",
         "name": "rewardDebt",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "unpaidRewards",
         "type": "uint256"
       }
     ],

@@ -6,27 +6,33 @@ export async function advanceBlock() {
   return ethers.provider.send("evm_mine", [])
 }
 
-export async function advancedBlockByTime(time: number) {
-  return ethers.provider.send("evm_mine", [time])
-}
-
-export async function advanceBlockTo(blockNumber: number) {
+export async function advanceBlockTo(blockNumber) {
   for (let i = await ethers.provider.getBlockNumber(); i < blockNumber; i++) {
     await advanceBlock()
   }
 }
 
-export async function latest() {
-  const block = await ethers.provider.getBlock("latest")
-  return Number(block.timestamp)
+export async function increase(value) {
+  await ethers.provider.send("evm_increaseTime", [value.toNumber()])
+  await advanceBlock()
 }
 
-export async function advanceTimeAndBlock(time: number) {
+export async function latest() {
+  const block = await ethers.provider.getBlock("latest")
+  return BigNumber.from(block.timestamp)
+}
+
+export async function timestamp(blocknumber) {
+  const block = await ethers.provider.getBlock(blocknumber)
+  return block.timestamp
+}
+
+export async function advanceTimeAndBlock(time) {
   await advanceTime(time)
   await advanceBlock()
 }
 
-export async function advanceTime(time: number) {
+export async function advanceTime(time) {
   await ethers.provider.send("evm_increaseTime", [time])
 }
 

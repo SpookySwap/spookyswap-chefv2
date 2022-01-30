@@ -9,6 +9,7 @@ import "hardhat-abi-exporter"
 import "solidity-coverage"
 import "hardhat-spdx-license-identifier"
 import { HardhatUserConfig } from "hardhat/types"
+import "hardhat-gas-reporter"
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -66,7 +67,7 @@ const config: HardhatUserConfig = {
   solidity: {   
     compilers: [
       {
-        version: "0.8.4",
+        version: "0.8.10",
         settings: {
           optimizer: {
             enabled: true,

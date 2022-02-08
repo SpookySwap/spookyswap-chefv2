@@ -314,6 +314,15 @@ contract MasterChefV2 is Ownable {
                     totalPending+=pending;
                 }
             }
+
+            IRewarder[] memory _rewarders = rewarders[pid];
+            IRewarder _rewarder;
+            for (uint j = 0; j < _rewarders.length; j++) {
+                _rewarder = _rewarders[j];
+                if (address(_rewarder) != address(0)) {
+                    _rewarder.onReward(pid, msg.sender, msg.sender, pending, user.amount);
+                }
+            }
         }
         if (totalPending > 0) {
             BOO.safeTransfer(msg.sender, totalPending);
@@ -343,6 +352,15 @@ contract MasterChefV2 is Ownable {
 
                 if(pending > 0) {
                     totalPending+=pending;
+                }
+            }
+
+            IRewarder[] memory _rewarders = rewarders[pid];
+            IRewarder _rewarder;
+            for (uint j = 0; j < _rewarders.length; j++) {
+                _rewarder = _rewarders[j];
+                if (address(_rewarder) != address(0)) {
+                    _rewarder.onReward(pid, msg.sender, msg.sender, pending, user.amount);
                 }
             }
         }

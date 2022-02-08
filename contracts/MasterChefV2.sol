@@ -105,57 +105,12 @@ contract MasterChefV2 is Ownable {
         require(!isLpToken[address(_lpToken)], "add: pool already exists!!!!");
     }
 
-    /// @notice Add a new LP to the pool. Can only be called by the owner.
-    /// @param allocPoint AP of the new pool.
-    /// @param _lpToken Address of the LP ERC-20 token.
-    /// @param _rewarders Addresses of the rewarder delegate(s).
-    function add(uint64 allocPoint, IERC20 _lpToken, IRewarder[] memory _rewarders, bool update) external onlyOwner {
-        checkForDuplicate(_lpToken);
-
-        if (update) {
-            massUpdateAllPools();
-        }
-
-        uint pid = poolInfoAmount;
-        uint64 lastRewardTime = uint64(block.timestamp);
-        totalAllocPoint = totalAllocPoint + allocPoint;
-        lpToken[pid] = _lpToken;
-        isLpToken[address(_lpToken)] = true;
-
-        for (uint256 i = 0; i < _rewarders.length; i++) {
-            rewarders[pid].push(_rewarders[i]);
-        }
-
-        PoolInfo storage poolinfo = poolInfo[pid];
-        poolinfo.allocPoint = allocPoint;
-        poolinfo.lastRewardTime = lastRewardTime;
-        poolinfo.accBooPerShare = 0;
-
-        poolInfoAmount = poolInfoAmount + 1;
-
-        emit LogPoolAddition(poolInfoAmount - 1, allocPoint, _lpToken, _rewarders, update);
+    modifier validatePid(uint256 pid) {
+        require(pid < poolInfoAmount, "pid doesn't exist...");
+        _;
     }
 
-    /// @notice Update the given pool's BOO allocation point and `IRewarder` contract. Can only be called by the owner.
-    /// @param _pid The index of the pool. See `poolInfo`.
-    /// @param _allocPoint New AP of the pool.
-    /// @param _rewarders Addresses of the rewarder delegates.
-    /// @param overwrite True if _rewarders should be `set`. Otherwise `_rewarders` is ignored.
-    function set(uint _pid, uint64 _allocPoint, IRewarder[] memory _rewarders, bool overwrite, bool update) external validatePid(_pid) onlyOwner {
-        if (update) {
-            massUpdateAllPools();
-        }
-
-        totalAllocPoint = totalAllocPoint - poolInfo[_pid].allocPoint + _allocPoint;
-        poolInfo[_pid].allocPoint = _allocPoint;
-        if (overwrite) {
-            delete rewarders[_pid];
-            for (uint256 i = 0; i < _rewarders.length; i++) {
-                rewarders[_pid].push(_rewarders[i]);
-            }
-        }
-        emit LogSetPool(_pid, _allocPoint, overwrite ? _rewarders : rewarders[_pid], overwrite, update);
-    }
+    
 
     /// @notice View function to see pending BOO on frontend.
     /// @param _pid The index of the pool. See `poolInfo`.
@@ -177,6 +132,7 @@ contract MasterChefV2 is Ownable {
     /// @notice Update reward variables for an array of pools. Be careful of gas spending!
     /// @param pids Pool IDs of all to be updated. Make sure to update all active pools.
     function massUpdatePools(uint256[] calldata pids) external {
+        harvestFromMasterChef();
         uint256 len = pids.length;
         for (uint256 i = 0; i < len; ++i) {
             _updatePool(pids[i]);
@@ -186,6 +142,7 @@ contract MasterChefV2 is Ownable {
     /// @notice Update reward variables for all pools. Be careful of gas spending!
     /// @dev This function should never be called from a smart contract as it has an unbounded gas cost.
     function massUpdateAllPools() public {
+        harvestFromMasterChef();
         uint len = poolInfoAmount;
         for (uint pid = 0; pid < len; ++pid) {
             _updatePool(pid);
@@ -381,10 +338,6 @@ contract MasterChefV2 is Ownable {
             harvestFromMasterChef();
     }
 
-    function setV1HarvestQueryTime(uint256 newTime, bool inDays) external onlyOwner {
-        V1_HARVEST_QUERY_TIME = newTime * (inDays ? 1 days : 1);
-    }
-
     /// @notice Withdraw without caring about rewards. EMERGENCY ONLY.
     /// @param pid The index of the pool. See `poolInfo`.
     /// @param to Receiver of the LP tokens.
@@ -399,8 +352,65 @@ contract MasterChefV2 is Ownable {
         emit EmergencyWithdraw(msg.sender, pid, amount, to);
     }
 
-    modifier validatePid(uint256 pid) {
-        require(pid < poolInfoAmount, "pid doesn't exist...");
-        _;
+
+    // ADMIN FUNCTIONS
+
+    /// @notice Add a new LP to the pool. Can only be called by the owner.
+    /// @param allocPoint AP of the new pool.
+    /// @param _lpToken Address of the LP ERC-20 token.
+    /// @param _rewarders Addresses of the rewarder delegate(s).
+    function add(uint64 allocPoint, IERC20 _lpToken, IRewarder[] memory _rewarders, bool update) external onlyOwner {
+        checkForDuplicate(_lpToken);
+        
+        if (update) {
+            massUpdateAllPools();
+        }
+
+        uint pid = poolInfoAmount;
+        uint64 lastRewardTime = uint64(block.timestamp);
+        totalAllocPoint = totalAllocPoint + allocPoint;
+        lpToken[pid] = _lpToken;
+        isLpToken[address(_lpToken)] = true;
+
+        for (uint256 i = 0; i < _rewarders.length; i++) {
+            rewarders[pid].push(_rewarders[i]);
+        }
+
+        PoolInfo storage poolinfo = poolInfo[pid];
+        poolinfo.allocPoint = allocPoint;
+        poolinfo.lastRewardTime = lastRewardTime;
+        poolinfo.accBooPerShare = 0;
+
+        poolInfoAmount = poolInfoAmount + 1;
+
+        emit LogPoolAddition(poolInfoAmount - 1, allocPoint, _lpToken, _rewarders, update);
     }
+
+    /// @notice Update the given pool's BOO allocation point and `IRewarder` contract. Can only be called by the owner.
+    /// @param _pid The index of the pool. See `poolInfo`.
+    /// @param _allocPoint New AP of the pool.
+    /// @param _rewarders Addresses of the rewarder delegates.
+    /// @param overwrite True if _rewarders should be `set`. Otherwise `_rewarders` is ignored.
+    function set(uint _pid, uint64 _allocPoint, IRewarder[] memory _rewarders, bool overwrite, bool update) external validatePid(_pid) onlyOwner {
+        
+        if (update) {
+            massUpdateAllPools();
+        }
+
+        totalAllocPoint = totalAllocPoint - poolInfo[_pid].allocPoint + _allocPoint;
+        poolInfo[_pid].allocPoint = _allocPoint;
+        if (overwrite) {
+            delete rewarders[_pid];
+            for (uint256 i = 0; i < _rewarders.length; i++) {
+                rewarders[_pid].push(_rewarders[i]);
+            }
+        }
+        emit LogSetPool(_pid, _allocPoint, overwrite ? _rewarders : rewarders[_pid], overwrite, update);
+    }
+
+    function setV1HarvestQueryTime(uint256 newTime, bool inDays) external onlyOwner {
+        V1_HARVEST_QUERY_TIME = newTime * (inDays ? 1 days : 1);
+    }
+
+
 }

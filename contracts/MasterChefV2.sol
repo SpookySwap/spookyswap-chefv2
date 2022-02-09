@@ -177,12 +177,20 @@ contract MasterChefV2 is Ownable {
         return _updatePool(pid);
     }
 
+    function deposit(uint pid, uint amount, address to) external validatePid(pid) {
+        _deposit(pid, amount, to);
+    }
+
+    function deposit(uint pid, uint amount) external validatePid(pid) {
+        _deposit(pid, amount, msg.sender);
+    }
+
 
     /// @notice Deposit LP tokens to MCV2 for BOO allocation.
     /// @param pid The index of the pool. See `poolInfo`.
     /// @param amount LP token amount to deposit.
     /// @param to The receiver of `amount` deposit benefit.
-    function deposit(uint pid, uint amount, address to) external validatePid(pid) {
+    function _deposit(uint pid, uint amount, address to) internal {
         PoolInfo memory pool = _updatePool(pid);
         UserInfo storage user = userInfo[pid][to];
 
@@ -212,11 +220,19 @@ contract MasterChefV2 is Ownable {
         emit Harvest(msg.sender, pid, _pendingBoo);
     }
 
+    function withdraw(uint pid, uint amount, address to) external validatePid(pid) {
+        _withdraw(pid, amount, to);
+    }
+
+    function withdraw(uint pid, uint amount) external validatePid(pid) {
+        _withdraw(pid, amount, msg.sender);
+    }
+
     /// @notice Withdraw LP tokens from MCV2 and harvest proceeds for transaction sender to `to`.
     /// @param pid The index of the pool. See `poolInfo`.
     /// @param amount LP token amount to withdraw.
     /// @param to Receiver of the LP tokens and BOO rewards.
-    function withdraw(uint pid, uint amount, address to) external validatePid(pid) {
+    function _withdraw(uint pid, uint amount, address to) internal {
         PoolInfo memory pool = _updatePool(pid);
         UserInfo storage user = userInfo[pid][msg.sender];
 

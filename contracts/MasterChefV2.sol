@@ -123,7 +123,7 @@ contract MasterChefV2 is Ownable {
         uint lpSupply = lpToken[_pid].balanceOf(address(this));
         if (block.timestamp > pool.lastRewardTime && lpSupply != 0) {
             uint multiplier = block.timestamp - pool.lastRewardTime;
-            uint booReward = (multiplier * booPerSecond() * pool.allocPoint) / totalAllocPoint;
+            uint booReward = totalAllocPoint == 0 ? 0 : ((multiplier * booPerSecond() * pool.allocPoint) / totalAllocPoint);
             accBooPerShare = accBooPerShare + (booReward * ACC_BOO_PRECISION / lpSupply);
         }
         pending = (user.amount * accBooPerShare / ACC_BOO_PRECISION) - user.rewardDebt;
@@ -163,7 +163,7 @@ contract MasterChefV2 is Ownable {
             uint lpSupply = lpToken[pid].balanceOf(address(this));
             if (lpSupply > 0) {
                 uint multiplier = block.timestamp - pool.lastRewardTime;
-                uint booReward = (multiplier * booPerSecond() * pool.allocPoint) / totalAllocPoint;
+                uint booReward = totalAllocPoint == 0 ? 0 : ((multiplier * booPerSecond() * pool.allocPoint) / totalAllocPoint);
                 queryHarvestFromMasterChef();
                 pool.accBooPerShare = uint128(pool.accBooPerShare + ((booReward * ACC_BOO_PRECISION) / lpSupply));
             }

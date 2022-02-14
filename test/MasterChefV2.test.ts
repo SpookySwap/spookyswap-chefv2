@@ -100,7 +100,6 @@ describe("MasterChefV2", function () {
     })
     it("Should give complex rewards and work properly if poolweight is 0 (no boo rewards)", async function () {
       await this.chef2.add(0, this.rlp.address, [this.rewarder.address], false)
-      await this.chef2.add(1, this.Boo.address, [], false) //dummy pool unused in this test, created so masterchef totalAllocPoint != 0
       await this.r.transfer(this.rewarder.address, getBigNumber(100000))
       await this.rewarder.add(10, 0, false)
       await this.rlp.approve(this.chef2.address, getBigNumber(10))

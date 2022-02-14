@@ -98,6 +98,26 @@ describe("MasterChefV2", function () {
       let pendingreward = await this.rewarder.pendingToken(0, this.alice.address)
       expect(pendingreward).to.be.equal(expectedReward) // 50
     })
+    it("Should give complex rewards and work properly if poolweight is 0 (no boo rewards)", async function () {
+      await this.chef2.add(0, this.rlp.address, [this.rewarder.address], false)
+      await this.chef2.add(1, this.Boo.address, [], false) //dummy pool unused in this test, created so masterchef totalAllocPoint != 0
+      await this.r.transfer(this.rewarder.address, getBigNumber(100000))
+      await this.rewarder.add(10, 0, false)
+      await this.rlp.approve(this.chef2.address, getBigNumber(10))
+      let log = await this.chef2.deposit(0, getBigNumber(1), this.alice.address)
+      await advanceTimeAndBlock(10)
+      let log2 = await this.chef2.updatePool(0)
+
+      let time1 = await timestamp(log.blockNumber)
+      let time2 = await timestamp(log2.blockNumber)
+
+      let expectedReward = getBigNumber(50)
+        .mul(time2 - time1)
+
+      let pendingreward = await this.rewarder.pendingToken(0, this.alice.address)
+      expect(pendingreward).to.be.equal(expectedReward) // 50
+      expect(await this.chef2.pendingBoo(0, this.alice.address)).to.be.equal(0) //no boo rewards!
+    })
   })
 
   describe("MassUpdatePools", function () {

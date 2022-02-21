@@ -8,7 +8,6 @@ import '@openzeppelin/contracts/access/Ownable.sol';
 import "./interfaces/IRewarder.sol";
 import "./interfaces/IMasterChef.sol";
 
-import "hardhat/console.sol";
 
 /// @notice The (older) MasterChef contract gives out a constant number of BOO tokens per second.
 /// It is the only address with minting rights for BOO.

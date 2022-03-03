@@ -406,8 +406,27 @@ contract MasterChefV2 is Ownable {
     /// @param _allocPoint New AP of the pool.
     /// @param _rewarders Addresses of the rewarder delegates.
     /// @param overwrite True if _rewarders should be `set`. Otherwise `_rewarders` is ignored.
-    function set(uint _pid, uint64 _allocPoint, IRewarder[] memory _rewarders, bool overwrite, bool update) external validatePid(_pid) onlyOwner {
-        
+    function set(uint _pid, uint64 _allocPoint, IRewarder[] memory _rewarders, bool overwrite, bool update) external onlyOwner {
+        _set(_pid, _allocPoint, _rewarders, overwrite, update);
+    }
+
+    /// @notice Batch update the given pool's BOO allocation point and `IRewarder` contract. Can only be called by the owner.
+    /// @param _pid The index of the pool. See `poolInfo`.
+    /// @param _allocPoint New AP of the pool.
+    /// @param _rewarders Addresses of the rewarder delegates.
+    /// @param overwrite True if _rewarders should be `set`. Otherwise `_rewarders` is ignored.
+    function setBatch(uint[] memory _pid, uint64[] memory _allocPoint, IRewarder[][] memory _rewarders, bool[] memory overwrite, bool update) external onlyOwner {
+        require(_pid.length == _allocPoint.length && _allocPoint.length == _rewarders.length && _rewarders.length == overwrite.length, "MCV2: all arrays need to be the same length");
+
+        if(update)
+            massUpdateAllPools();
+
+        uint len = _pid.length;
+        for(uint i = 0; i < len; i++)
+            _set(_pid[i], _allocPoint[i], _rewarders[i], overwrite[i], false);
+    }
+
+    function _set(uint _pid, uint64 _allocPoint, IRewarder[] memory _rewarders, bool overwrite, bool update) internal validatePid(_pid) {
         if (update) {
             massUpdateAllPools();
         }

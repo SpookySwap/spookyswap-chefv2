@@ -1,4 +1,4 @@
-import { task } from "hardhat/config"
+import { task, types } from "hardhat/config"
 import "dotenv/config"
 import "ethers"
 import "@nomiclabs/hardhat-waffle"
@@ -10,6 +10,50 @@ import "solidity-coverage"
 import "hardhat-spdx-license-identifier"
 import { HardhatUserConfig } from "hardhat/types"
 import "hardhat-gas-reporter"
+
+const MASTER_PID = 66
+const MCV1 = "0x2b2929E785374c651a81A63878Ab22742656DcDd"
+const MCV2 = "0x7bC91039C93477515c777e9367Ae49738CC243d0"
+
+task("addpool", "Adds pool to MCv2").addParam("allocPoint", "Amount of points to allocate to the new pool", undefined, types.int).addParam("lpToken", "Address of the LP tokens for the farm").addOptionalParam("update", "true if massUpdateAllPools should be called", false, types.boolean).addParam("sleep", "Time in seconds to sleep between adding and setting up the pool", undefined, types.int).setAction(async (taskArgs, hre) => {
+    const wait = (milliseconds) => {
+      return new Promise(resolve => setTimeout(resolve, milliseconds))
+    }
+
+    let allocPoint, lpToken, tx
+    allocPoint = hre.ethers.utils.parseUnits((taskArgs.allocPoint).toString(), 0)
+
+    try {
+        lpToken = hre.ethers.utils.getAddress(taskArgs.lpToken)
+    } catch {
+        console.log("ERROR: LP token address not valid")
+        return
+    }
+
+    //set this manually here when needed
+    let rewarders = []
+    let overwrite = true
+
+    let MCv1 = await hre.ethers.getContractAt("MasterChef", MCV1)
+    let MCv2 = await hre.ethers.getContractAt("MasterChefV2", MCV2)
+
+    console.log("Adding pool...")
+    tx = await MCv2.add(0, lpToken, rewarders, taskArgs.update)
+    await tx.wait();
+
+    console.log("Sleeping for " + taskArgs.sleep + " seconds...")
+    await wait(taskArgs.sleep * 1000)
+
+    console.log("Adjusting MCv1 allocation...")
+    let newAlloc = Number(hre.ethers.utils.formatUnits((await MCv1.poolInfo(MASTER_PID)).allocPoint, 0)) + Number(taskArgs.allocPoint)
+    tx = await MCv1.set(MASTER_PID, newAlloc)
+    await tx.wait();
+
+    console.log("Setting new MCv2 pool allocation...")
+    let pid = (await MCv2.poolInfoAmount) - 1
+    tx = await MCv2.set(pid, allocPoint, rewarders, overwrite, taskArgs.update)
+    await tx.wait();
+});
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -29,7 +73,7 @@ const accounts = {
  * @type import('hardhat/config').HardhatUserConfig
  */
 const config: HardhatUserConfig = {
-  defaultNetwork: "localhost",
+  defaultNetwork: "fantom",
   mocha: {
     timeout: 20000,
   },
@@ -64,7 +108,7 @@ const config: HardhatUserConfig = {
     overwrite: false,
     runOnCompile: true,
   },
-  solidity: {   
+  solidity: {
     compilers: [
       {
         version: "0.8.10",

@@ -36,7 +36,21 @@ describe("MasterChefV2", function () {
 
   })
 
-  describe("Init", function () {
+  describe("Suspicious actions", function () {
+    it("Test 1", async function () {
+      await this.chef2.add(0, this.rlp.address, [this.rewarder.address], false)
+      await this.rlp.approve(this.chef2.address, getBigNumber(10))
+      await expect(this.chef2.deposit(0, getBigNumber(1), this.alice.address)).to.not.be.reverted
+      await advanceTimeAndBlock(10)
+      await expect(this.chef2.set(0, 10, [this.rewarder.address], false, true)).to.not.be.reverted
+      await expect(this.chef2.deposit(0, getBigNumber(1), this.alice.address)).to.not.be.reverted
+      await advanceTimeAndBlock(10)
+      await expect(this.chef2.set(0, 0, [this.rewarder.address], false, true)).to.not.be.reverted
+      await expect(this.chef2.deposit(0, getBigNumber(1), this.alice.address)).to.not.be.reverted
+    })
+  })
+
+  /*describe("Init", function () {
     it("Balance of dummyToken should be 0 after init(), repeated execution should fail", async function () {
       await expect(this.chef2.init(this.dummy.address)).to.be.revertedWith("Balance must exceed 0")
     })
@@ -77,8 +91,8 @@ describe("MasterChefV2", function () {
         .mul(time2 - time1)
         .div(2)
 
-      let pendingBoo = await this.chef2.pendingBoo(0, this.alice.address)
-      expect(pendingBoo).to.be.equal(expectedBoo) // 50
+      let pendingBOO = await this.chef2.pendingBOO(0, this.alice.address)
+      expect(pendingBOO).to.be.equal(expectedBoo) // 50
     })
     it("PendingReward should equal ExpectedReward", async function () {
       await this.chef2.add(10, this.rlp.address, [this.rewarder.address], false)
@@ -115,7 +129,7 @@ describe("MasterChefV2", function () {
 
       let pendingreward = await this.rewarder.pendingToken(0, this.alice.address)
       expect(pendingreward).to.be.equal(expectedReward) // 50
-      expect(await this.chef2.pendingBoo(0, this.alice.address)).to.be.equal(0) //no boo rewards!
+      expect(await this.chef2.pendingBOO(0, this.alice.address)).to.be.equal(0) //no boo rewards!
     })
   })
 
@@ -223,5 +237,5 @@ describe("MasterChefV2", function () {
         .to.emit(this.chef2, "EmergencyWithdraw")
         .withArgs(this.bob.address, 0, getBigNumber(1), this.bob.address)
     })
-  })
+  })*/
 })

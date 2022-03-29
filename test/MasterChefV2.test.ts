@@ -38,14 +38,14 @@ describe("MasterChefV2", function () {
 
   describe("Suspicious actions", function () {
     it("Test 1", async function () {
-      await this.chef2.add(0, this.rlp.address, [this.rewarder.address], false)
+      await this.chef2.add(10, this.rlp.address, [this.rewarder.address], false)
       await this.rlp.approve(this.chef2.address, getBigNumber(10))
       await expect(this.chef2.deposit(0, getBigNumber(1), this.alice.address)).to.not.be.reverted
       await advanceTimeAndBlock(10)
-      await expect(this.chef2.set(0, 10, [this.rewarder.address], false, true)).to.not.be.reverted
+      // await expect(this.chef2.set(0, 10, [this.rewarder.address], false, true)).to.not.be.reverted
       await expect(this.chef2.deposit(0, getBigNumber(1), this.alice.address)).to.not.be.reverted
       await advanceTimeAndBlock(10)
-      await expect(this.chef2.set(0, 0, [this.rewarder.address], false, true)).to.not.be.reverted
+      // await expect(this.chef2.set(0, 0, [this.rewarder.address], false, true)).to.not.be.reverted
       await expect(this.chef2.deposit(0, getBigNumber(1), this.alice.address)).to.not.be.reverted
     })
   })

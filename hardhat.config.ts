@@ -73,7 +73,7 @@ const accounts = {
  * @type import('hardhat/config').HardhatUserConfig
  */
 const config: HardhatUserConfig = {
-  defaultNetwork: "fantom",
+  defaultNetwork: "hardhat",
   mocha: {
     timeout: 20000,
   },
@@ -83,9 +83,11 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       accounts,
-      forking: {
-        url: "https://rpc.fantom.network",
-      }
+      /*forking: {
+        url: "https://rpc.ftm.tools",
+        blockNumber: 34725366,
+      },*/
+      chainId: 250,
     },
     localhost: {
       accounts,

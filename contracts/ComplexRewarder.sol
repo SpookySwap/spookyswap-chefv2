@@ -177,7 +177,7 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
 
             if (lpSupply > 0) {
                 uint time = block.timestamp - pool.lastRewardTime;
-                uint reward = time * rewardPerSecond * pool.allocPoint / totalAllocPoint;
+                uint reward = totalAllocPoint == 0 ? 0 : (time * rewardPerSecond * pool.allocPoint / totalAllocPoint);
                 pool.accRewardPerShare = pool.accRewardPerShare + uint128(reward * ACC_TOKEN_PRECISION / lpSupply);
             }
             pool.lastRewardTime = uint64(block.timestamp);

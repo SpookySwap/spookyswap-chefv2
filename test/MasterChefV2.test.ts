@@ -35,22 +35,24 @@ describe("MasterChefV2", function () {
     await this.rlp.transfer(this.bob.address, getBigNumber(1))
 
   })
-
+  
   describe("Suspicious actions", function () {
-    it("Test 1", async function () {
+    it("Multiple deposits", async function () {
       await this.chef2.add(10, this.rlp.address, [this.rewarder.address], false)
       await this.rlp.approve(this.chef2.address, getBigNumber(10))
-      await expect(this.chef2.deposit(0, getBigNumber(1), this.alice.address)).to.not.be.reverted
+      await advanceTimeAndBlock(100)
+      await expect(this.chef2.harvestFromMasterChef()).to.not.be.reverted
+      await expect(this.chef2["deposit(uint256,uint256,address)"](0, getBigNumber(1), this.alice.address)).to.not.be.reverted
       await advanceTimeAndBlock(10)
       // await expect(this.chef2.set(0, 10, [this.rewarder.address], false, true)).to.not.be.reverted
-      await expect(this.chef2.deposit(0, getBigNumber(1), this.alice.address)).to.not.be.reverted
+      await expect(this.chef2["deposit(uint256,uint256,address)"](0, getBigNumber(1), this.alice.address)).to.not.be.reverted
       await advanceTimeAndBlock(10)
       // await expect(this.chef2.set(0, 0, [this.rewarder.address], false, true)).to.not.be.reverted
-      await expect(this.chef2.deposit(0, getBigNumber(1), this.alice.address)).to.not.be.reverted
+      await expect(this.chef2["deposit(uint256,uint256,address)"](0, getBigNumber(1), this.alice.address)).to.not.be.reverted
     })
-  })
+  }) 
 
-  /*describe("Init", function () {
+  describe("Init", function () {
     it("Balance of dummyToken should be 0 after init(), repeated execution should fail", async function () {
       await expect(this.chef2.init(this.dummy.address)).to.be.revertedWith("Balance must exceed 0")
     })
@@ -80,7 +82,7 @@ describe("MasterChefV2", function () {
     it("PendingBoo should equal ExpectedBoo", async function () {
       await this.chef2.add(10, this.rlp.address, [this.rewarder.address], false)
       await this.rlp.approve(this.chef2.address, getBigNumber(10))
-      let log = await this.chef2.deposit(0, getBigNumber(1), this.alice.address)
+      let log = await this.chef2['deposit(uint256,uint256,address)'](0, getBigNumber(1), this.alice.address)
       await advanceTimeAndBlock(10)
       let log2 = await this.chef2.updatePool(0)
 
@@ -99,7 +101,7 @@ describe("MasterChefV2", function () {
       await this.r.transfer(this.rewarder.address, getBigNumber(100000))
       await this.rewarder.add(10, 0, false)
       await this.rlp.approve(this.chef2.address, getBigNumber(10))
-      let log = await this.chef2.deposit(0, getBigNumber(1), this.alice.address)
+      let log = await this.chef2['deposit(uint256,uint256,address)'](0, getBigNumber(1), this.alice.address)
       await advanceTimeAndBlock(10)
       let log2 = await this.chef2.updatePool(0)
 
@@ -117,7 +119,7 @@ describe("MasterChefV2", function () {
       await this.r.transfer(this.rewarder.address, getBigNumber(100000))
       await this.rewarder.add(10, 0, false)
       await this.rlp.approve(this.chef2.address, getBigNumber(10))
-      let log = await this.chef2.deposit(0, getBigNumber(1), this.alice.address)
+      let log = await this.chef2['deposit(uint256,uint256,address)'](0, getBigNumber(1), this.alice.address)
       await advanceTimeAndBlock(10)
       let log2 = await this.chef2.updatePool(0)
 
@@ -159,20 +161,20 @@ describe("MasterChefV2", function () {
     it("Depositing 0 amount", async function () {
       await this.chef2.add(10, this.rlp.address, [this.rewarder.address], false)
       await this.rlp.approve(this.chef2.address, getBigNumber(10))
-      await expect(this.chef2.deposit(0, getBigNumber(0), this.alice.address))
+      await expect(this.chef2['deposit(uint256,uint256,address)'](0, getBigNumber(0), this.alice.address))
         .to.emit(this.chef2, "Deposit")
         .withArgs(this.alice.address, 0, 0, this.alice.address)
     })
 
     it("Depositing into non-existent pool should fail", async function () {
-        await expect(this.chef2.deposit(1001, getBigNumber(0), this.alice.address)).to.be.reverted
+        await expect(this.chef2['deposit(uint256,uint256,address)'](1001, getBigNumber(0), this.alice.address)).to.be.reverted
     })
   })
 
   describe("Withdraw", function () {
     it("Withdraw 0 amount", async function () {
       await this.chef2.add(10, this.rlp.address, [this.rewarder.address], false)
-      await expect(this.chef2.withdraw(0, getBigNumber(0), this.alice.address))
+      await expect(this.chef2['withdraw(uint256,uint256,address)'](0, getBigNumber(0), this.alice.address))
         .to.emit(this.chef2, "Withdraw")
         .withArgs(this.alice.address, 0, 0, this.alice.address)
     })
@@ -187,9 +189,9 @@ describe("MasterChefV2", function () {
       await this.chef2.add(10, this.rlp.address, [this.rewarder.address, this.rewarder2.address], false)
       await this.rlp.approve(this.chef2.address, getBigNumber(10))
       expect(await this.chef2.lpToken(0)).to.be.equal(this.rlp.address)
-      let log = await this.chef2.deposit(0, getBigNumber(1), this.alice.address)
+      let log = await this.chef2['deposit(uint256,uint256,address)'](0, getBigNumber(1), this.alice.address)
       await advanceTimeAndBlock(10)
-      let log2 = await this.chef2.withdraw(0, getBigNumber(1), this.alice.address)
+      let log2 = await this.chef2['withdraw(uint256,uint256,address)'](0, getBigNumber(1), this.alice.address)
 
       let time1 = await timestamp(log.blockNumber)
       let time2 = await timestamp(log2.blockNumber)
@@ -205,16 +207,16 @@ describe("MasterChefV2", function () {
     })
     it("Harvest with empty user balance", async function () {
       await this.chef2.add(10, this.rlp.address, [this.rewarder.address], false)
-      await this.chef2.withdraw(0, 0, this.alice.address)
+      await this.chef2['withdraw(uint256,uint256,address)'](0, 0, this.alice.address)
     })
 
     it("Harvest for Boo-only pool", async function () {
       await this.chef2.add(10, this.rlp.address, [ADDRESS_ZERO], false)
       await this.rlp.approve(this.chef2.address, getBigNumber(10))
       expect(await this.chef2.lpToken(0)).to.be.equal(this.rlp.address)
-      let log = await this.chef2.deposit(0, getBigNumber(1), this.alice.address)
+      let log = await this.chef2['deposit(uint256,uint256,address)'](0, getBigNumber(1), this.alice.address)
       await advanceTimeAndBlock(10)
-      let log2 = await this.chef2.withdraw(0, getBigNumber(1), this.alice.address)
+      let log2 = await this.chef2['withdraw(uint256,uint256,address)'](0, getBigNumber(1), this.alice.address)
 
       let time1 = await timestamp(log.blockNumber)
       let time2 = await timestamp(log2.blockNumber)
@@ -232,10 +234,10 @@ describe("MasterChefV2", function () {
       await this.r.transfer(this.rewarder.address, getBigNumber(100000))
       await this.chef2.add(10, this.rlp.address, [this.rewarder.address], false)
       await this.rlp.approve(this.chef2.address, getBigNumber(10))
-      await this.chef2.deposit(0, getBigNumber(1), this.bob.address)
+      await this.chef2['deposit(uint256,uint256,address)'](0, getBigNumber(1), this.bob.address)
       await expect(this.chef2.connect(this.bob).emergencyWithdraw(0, this.bob.address))
         .to.emit(this.chef2, "EmergencyWithdraw")
         .withArgs(this.bob.address, 0, getBigNumber(1), this.bob.address)
     })
-  })*/
+  })
 })

@@ -115,7 +115,7 @@ contract MasterChefV2 is Ownable {
     /// @param _pid The index of the pool. See `poolInfo`.
     /// @param _user Address of user.
     /// @return pending BOO reward for a given user.
-    function pendingBoo(uint _pid, address _user) external view validatePid(_pid) returns (uint pending) {
+    function pendingBOO(uint _pid, address _user) external view validatePid(_pid) returns (uint pending) {
         PoolInfo memory pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
         uint accBooPerShare = pool.accBooPerShare;

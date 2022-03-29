@@ -104,6 +104,22 @@ contract MasterChefV2 is Ownable {
         require(!isLpToken[address(_lpToken)], "add: pool already exists!!!!");
     }
 
+    function getAllRewarders(uint pid) external view returns (IRewarder[] memory) {
+        return rewarders[pid];
+    }
+
+    function queryRewarder(uint pid, uint index) external view returns (address) {
+        IRewarder[] memory rewarder = rewarders[pid];
+        if(index < rewarder.length)
+            return address(rewarder[index]);
+        else
+            return address(0);
+    }
+
+    function getFarmData(uint pid) external view returns (PoolInfo memory, uint, IRewarder[] memory) {
+        return (poolInfo[pid], totalAllocPoint, rewarders[pid]);
+    }
+
     modifier validatePid(uint256 pid) {
         require(pid < poolInfoAmount, "pid doesn't exist...");
         _;

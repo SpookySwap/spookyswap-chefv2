@@ -291,8 +291,7 @@ contract MasterChefV2 is Ownable {
         for (uint256 pid = 0; pid < length; ++pid) {
             user = userInfo[pid][msg.sender];
             if (user.amount > 0) {
-                pool = poolInfo[pid];
-                _updatePool(pid);
+                pool = _updatePool(pid);
 
                 calc = user.amount * pool.accBooPerShare / ACC_BOO_PRECISION;
                 pending = calc - user.rewardDebt;

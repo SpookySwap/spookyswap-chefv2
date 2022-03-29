@@ -50,7 +50,7 @@ contract MasterChefV2 is Ownable {
     /// @notice Is an address contained in the above `lpToken` array
     mapping(address => bool) public isLpToken;
     /// @notice Address of each `IRewarder` contract in MCV2.
-    mapping(uint => IRewarder[]) public rewarders;
+    mapping(uint => IRewarder) public rewarder;
 
     /// @notice Info of each user that stakes LP tokens.
     mapping (uint => mapping (address => UserInfo)) public userInfo;
@@ -68,8 +68,8 @@ contract MasterChefV2 is Ownable {
     event Withdraw(address indexed user, uint indexed pid, uint amount, address indexed to);
     event EmergencyWithdraw(address indexed user, uint indexed pid, uint amount, address indexed to);
     event Harvest(address indexed user, uint indexed pid, uint amount);
-    event LogPoolAddition(uint indexed pid, uint allocPoint, IERC20 indexed lpToken, IRewarder[] rewarders, bool update);
-    event LogSetPool(uint indexed pid, uint allocPoint, IRewarder[] rewarders, bool overwrite, bool update);
+    event LogPoolAddition(uint indexed pid, uint allocPoint, IERC20 indexed lpToken, IRewarder rewarder, bool update);
+    event LogSetPool(uint indexed pid, uint allocPoint, IRewarder rewarder, bool overwrite, bool update);
     event LogUpdatePool(uint indexed pid, uint lastRewardTime, uint lpSupply, uint accBooPerShare);
     event LogInit();
 
@@ -104,20 +104,8 @@ contract MasterChefV2 is Ownable {
         require(!isLpToken[address(_lpToken)], "add: pool already exists!!!!");
     }
 
-    function getAllRewarders(uint pid) external view returns (IRewarder[] memory) {
-        return rewarders[pid];
-    }
-
-    function queryRewarder(uint pid, uint index) external view returns (address) {
-        IRewarder[] memory rewarder = rewarders[pid];
-        if(index < rewarder.length)
-            return address(rewarder[index]);
-        else
-            return address(0);
-    }
-
-    function getFarmData(uint pid) external view returns (PoolInfo memory, uint, IRewarder[] memory) {
-        return (poolInfo[pid], totalAllocPoint, rewarders[pid]);
+    function getFarmData(uint pid) external view returns (PoolInfo memory, uint, IRewarder) {
+        return (poolInfo[pid], totalAllocPoint, rewarder[pid]);
     }
 
     modifier validatePid(uint256 pid) {
@@ -220,13 +208,9 @@ contract MasterChefV2 is Ownable {
             BOO.safeTransfer(to, _pendingBoo);
         }
 
-        IRewarder[] memory _rewarders = rewarders[pid];
-        IRewarder _rewarder;
-        for (uint256 i = 0; i < _rewarders.length; i++) {
-            _rewarder = _rewarders[i];
-            if (address(_rewarder) != address(0)) {
-                _rewarder.onReward(pid, to, to, _pendingBoo, user.amount);
-            }
+        IRewarder _rewarder = rewarder[pid];
+        if (address(_rewarder) != address(0)) {
+            _rewarder.onReward(pid, to, to, _pendingBoo, user.amount);
         }
 
         lpToken[pid].safeTransferFrom(msg.sender, address(this), amount);
@@ -264,13 +248,9 @@ contract MasterChefV2 is Ownable {
             BOO.safeTransfer(to, _pendingBoo);
         }
 
-        IRewarder[] memory _rewarders = rewarders[pid];
-        IRewarder _rewarder;
-        for (uint256 i = 0; i < _rewarders.length; i++) {
-            _rewarder = _rewarders[i];
-            if (address(_rewarder) != address(0)) {
-                _rewarder.onReward(pid, msg.sender, to, _pendingBoo, user.amount);
-            }
+        IRewarder _rewarder = rewarder[pid];
+        if (address(_rewarder) != address(0)) {
+            _rewarder.onReward(pid, msg.sender, to, _pendingBoo, user.amount);
         }
 
         lpToken[pid].safeTransfer(to, amount);
@@ -302,13 +282,9 @@ contract MasterChefV2 is Ownable {
                 }
             }
 
-            IRewarder[] memory _rewarders = rewarders[pid];
-            IRewarder _rewarder;
-            for (uint j = 0; j < _rewarders.length; j++) {
-                _rewarder = _rewarders[j];
-                if (address(_rewarder) != address(0)) {
-                    _rewarder.onReward(pid, msg.sender, msg.sender, pending, user.amount);
-                }
+            IRewarder _rewarder = rewarder[pid];
+            if (address(_rewarder) != address(0)) {
+                _rewarder.onReward(pid, msg.sender, msg.sender, pending, user.amount);
             }
         }
         if (totalPending > 0) {
@@ -342,14 +318,11 @@ contract MasterChefV2 is Ownable {
                 }
             }
 
-            IRewarder[] memory _rewarders = rewarders[pid];
-            IRewarder _rewarder;
-            for (uint j = 0; j < _rewarders.length; j++) {
-                _rewarder = _rewarders[j];
-                if (address(_rewarder) != address(0)) {
-                    _rewarder.onReward(pid, msg.sender, msg.sender, pending, user.amount);
-                }
+            IRewarder _rewarder = rewarder[pid];
+            if (address(_rewarder) != address(0)) {
+                _rewarder.onReward(pid, msg.sender, msg.sender, pending, user.amount);
             }
+
         }
         if (totalPending > 0) {
             BOO.safeTransfer(msg.sender, totalPending);
@@ -388,8 +361,8 @@ contract MasterChefV2 is Ownable {
     /// @notice Add a new LP to the pool. Can only be called by the owner.
     /// @param allocPoint AP of the new pool.
     /// @param _lpToken Address of the LP ERC-20 token.
-    /// @param _rewarders Addresses of the rewarder delegate(s).
-    function add(uint64 allocPoint, IERC20 _lpToken, IRewarder[] memory _rewarders, bool update) external onlyOwner {
+    /// @param _rewarder Addresses of the rewarder delegate(s).
+    function add(uint64 allocPoint, IERC20 _lpToken, IRewarder _rewarder, bool update) external onlyOwner {
         checkForDuplicate(_lpToken);
         
         if (update) {
@@ -401,10 +374,7 @@ contract MasterChefV2 is Ownable {
         totalAllocPoint = totalAllocPoint + allocPoint;
         lpToken[pid] = _lpToken;
         isLpToken[address(_lpToken)] = true;
-
-        for (uint256 i = 0; i < _rewarders.length; i++) {
-            rewarders[pid].push(_rewarders[i]);
-        }
+        rewarder[pid] = _rewarder;
 
         PoolInfo storage poolinfo = poolInfo[pid];
         poolinfo.allocPoint = allocPoint;
@@ -413,16 +383,16 @@ contract MasterChefV2 is Ownable {
 
         poolInfoAmount = poolInfoAmount + 1;
 
-        emit LogPoolAddition(poolInfoAmount - 1, allocPoint, _lpToken, _rewarders, update);
+        emit LogPoolAddition(poolInfoAmount - 1, allocPoint, _lpToken, _rewarder, update);
     }
 
     /// @notice Update the given pool's BOO allocation point and `IRewarder` contract. Can only be called by the owner.
     /// @param _pid The index of the pool. See `poolInfo`.
     /// @param _allocPoint New AP of the pool.
-    /// @param _rewarders Addresses of the rewarder delegates.
+    /// @param _rewarder Addresses of the rewarder delegates.
     /// @param overwrite True if _rewarders should be `set`. Otherwise `_rewarders` is ignored.
-    function set(uint _pid, uint64 _allocPoint, IRewarder[] memory _rewarders, bool overwrite, bool update) external onlyOwner {
-        _set(_pid, _allocPoint, _rewarders, overwrite, update);
+    function set(uint _pid, uint64 _allocPoint, IRewarder _rewarder, bool overwrite, bool update) external onlyOwner {
+        _set(_pid, _allocPoint, _rewarder, overwrite, update);
     }
 
     /// @notice Batch update the given pool's BOO allocation point and `IRewarder` contract. Can only be called by the owner.
@@ -430,7 +400,7 @@ contract MasterChefV2 is Ownable {
     /// @param _allocPoint New AP of the pool.
     /// @param _rewarders Addresses of the rewarder delegates.
     /// @param overwrite True if _rewarders should be `set`. Otherwise `_rewarders` is ignored.
-    function setBatch(uint[] memory _pid, uint64[] memory _allocPoint, IRewarder[][] memory _rewarders, bool[] memory overwrite, bool update) external onlyOwner {
+    function setBatch(uint[] memory _pid, uint64[] memory _allocPoint, IRewarder[] memory _rewarders, bool[] memory overwrite, bool update) external onlyOwner {
         require(_pid.length == _allocPoint.length && _allocPoint.length == _rewarders.length && _rewarders.length == overwrite.length, "MCV2: all arrays need to be the same length");
 
         if(update)
@@ -441,20 +411,16 @@ contract MasterChefV2 is Ownable {
             _set(_pid[i], _allocPoint[i], _rewarders[i], overwrite[i], false);
     }
 
-    function _set(uint _pid, uint64 _allocPoint, IRewarder[] memory _rewarders, bool overwrite, bool update) internal validatePid(_pid) {
+    function _set(uint _pid, uint64 _allocPoint, IRewarder _rewarder, bool overwrite, bool update) internal validatePid(_pid) {
         if (update) {
             massUpdateAllPools();
         }
 
         totalAllocPoint = totalAllocPoint - poolInfo[_pid].allocPoint + _allocPoint;
         poolInfo[_pid].allocPoint = _allocPoint;
-        if (overwrite) {
-            delete rewarders[_pid];
-            for (uint256 i = 0; i < _rewarders.length; i++) {
-                rewarders[_pid].push(_rewarders[i]);
-            }
-        }
-        emit LogSetPool(_pid, _allocPoint, overwrite ? _rewarders : rewarders[_pid], overwrite, update);
+        if (overwrite) rewarder[_pid] = _rewarder;
+
+        emit LogSetPool(_pid, _allocPoint, overwrite ? _rewarder : rewarder[_pid], overwrite, update);
     }
 
     function setV1HarvestQueryTime(uint256 newTime, bool inDays) external onlyOwner {

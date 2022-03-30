@@ -198,7 +198,7 @@ contract MasterChefV2 is Ownable {
         UserInfo storage user = userInfo[pid][to];
 
         // Effects
-        uint256 _pendingBoo = (user.amount * (pool.accBooPerShare / ACC_BOO_PRECISION)) - user.rewardDebt;
+        uint256 _pendingBoo = (user.amount * pool.accBooPerShare / ACC_BOO_PRECISION) - user.rewardDebt;
 
         user.amount += amount;
         user.rewardDebt = user.amount * pool.accBooPerShare / ACC_BOO_PRECISION;
@@ -238,7 +238,7 @@ contract MasterChefV2 is Ownable {
         require(user.amount >= amount, "withdraw: not good");
 
         // Effects
-        uint256 _pendingBoo = (user.amount * (pool.accBooPerShare / ACC_BOO_PRECISION)) - user.rewardDebt;
+        uint256 _pendingBoo = (user.amount * pool.accBooPerShare / ACC_BOO_PRECISION) - user.rewardDebt;
 
         user.amount -= amount;
         user.rewardDebt = user.amount * pool.accBooPerShare / ACC_BOO_PRECISION;

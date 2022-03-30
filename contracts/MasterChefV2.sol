@@ -306,8 +306,7 @@ contract MasterChefV2 is Ownable {
             pid = pids[i];
             user = userInfo[pid][msg.sender];
             if (user.amount > 0) {
-                pool = poolInfo[pid];
-                _updatePool(pid);
+                pool = _updatePool(pid);
 
                 calc = user.amount * pool.accBooPerShare / ACC_BOO_PRECISION;
                 pending = calc - user.rewardDebt;
@@ -316,11 +315,11 @@ contract MasterChefV2 is Ownable {
                 if(pending > 0) {
                     totalPending+=pending;
                 }
-            }
 
-            IRewarder _rewarder = rewarder[pid];
-            if (address(_rewarder) != address(0)) {
-                _rewarder.onReward(pid, msg.sender, msg.sender, pending, user.amount);
+                IRewarder _rewarder = rewarder[pid];
+                if (address(_rewarder) != address(0)) {
+                    _rewarder.onReward(pid, msg.sender, msg.sender, pending, user.amount);
+                }
             }
 
         }

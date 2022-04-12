@@ -8,11 +8,15 @@ import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import "./MasterChefV2.sol";
 
+interface IRewarderExt is IRewarder {
+    function pendingToken(uint _pid, address _user) external view returns (uint pending);
+}
+
 interface IERC20Ext is IERC20 {
     function decimals() external returns (uint);
 }
 
-contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
+contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     IERC20 public immutable rewardToken;
@@ -49,6 +53,8 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
 
     address private immutable MASTERCHEF_V2;
 
+    address private immutable PARENT;
+
     event LogOnReward(address indexed user, uint indexed pid, uint amount, address indexed to);
     event LogPoolAddition(uint indexed pid, uint allocPoint);
     event LogSetPool(uint indexed pid, uint allocPoint);
@@ -57,25 +63,23 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
     event AdminTokenRecovery(address _tokenAddress, uint _amt, address _adr);
     event LogInit();
 
-    modifier onlyMCV2 {
-        require(
-            msg.sender == MASTERCHEF_V2,
-            "Only MCV2 can call this function."
-        );
+    modifier onlyParent {
+        require(msg.sender == PARENT, "Only PARENT can call this function.");
         _;
     }
 
-    constructor (IERC20Ext _rewardToken, uint _rewardPerSecond, address _MASTERCHEF_V2) {
+    constructor (IERC20Ext _rewardToken, uint _rewardPerSecond, address _MASTERCHEF_V2, address _PARENT) {
         uint decimalsRewardToken = _rewardToken.decimals();
         require(decimalsRewardToken < 30, "Token has way too many decimals");
         ACC_TOKEN_PRECISION = 10**(30 - decimalsRewardToken);
         rewardToken = _rewardToken;
         rewardPerSecond = _rewardPerSecond;
         MASTERCHEF_V2 = _MASTERCHEF_V2;
+        PARENT = _PARENT;
     }
 
 
-    function onReward (uint _pid, address _user, address _to, uint, uint _amt) onlyMCV2 nonReentrant override external {
+    function onReward (uint _pid, address _user, address _to, uint, uint _amt) onlyParent nonReentrant override external {
         PoolInfo memory pool = updatePool(_pid);
         UserInfo storage user = userInfo[_pid][_user];
         uint pending;

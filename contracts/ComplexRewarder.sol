@@ -7,10 +7,7 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import "./MasterChefV2.sol";
-
-interface IERC20Ext is IERC20 {
-    function decimals() external returns (uint);
-}
+import "./ChildRewarder.sol";
 
 contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -49,6 +46,8 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
 
     address private immutable MASTERCHEF_V2;
 
+    IRewarder[] public childrenRewarders;
+
     event LogOnReward(address indexed user, uint indexed pid, uint amount, address indexed to);
     event LogPoolAddition(uint indexed pid, uint allocPoint);
     event LogSetPool(uint indexed pid, uint allocPoint);
@@ -74,6 +73,32 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
         MASTERCHEF_V2 = _MASTERCHEF_V2;
     }
 
+    function createChild(IERC20Ext _rewardToken, uint _rewardPerSecond) external onlyOwner {
+        IRewarder child = new ChildRewarder(_rewardToken, _rewardPerSecond, MASTERCHEF_V2, address(this));
+        Ownable(address(child)).transferOwnership(msg.sender);
+        childrenRewarders.push(child);
+    }
+
+    //careful! these need to be ChildRewarders! use createChild instead if applicable.
+    function addChildren(IRewarder[] calldata rewarders) external onlyOwner {
+        uint len = rewarders.length;
+        for(uint i = 0; i < len;) {
+            childrenRewarders.push(rewarders[i]);
+            unchecked {++i;}
+        }
+    }
+
+    function popChildren(uint amount) external onlyOwner {
+        for(uint i = 0; i < amount;) {
+            childrenRewarders.pop();
+            unchecked {++i;}
+        }
+    }
+
+    function getChildrenRewarders() external view returns (IRewarder[] memory) {
+        return childrenRewarders;
+    }
+
 
     function onReward (uint _pid, address _user, address _to, uint, uint _amt) onlyMCV2 nonReentrant override external {
         PoolInfo memory pool = updatePool(_pid);
@@ -86,8 +111,13 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
         user.amount = _amt;
         user.rewardDebt = _amt * pool.accRewardPerShare / ACC_TOKEN_PRECISION;
         emit LogOnReward(_user, _pid, pending, _to);
+        uint len = childrenRewarders.length;
+        for(uint i = 0; i < len;) {
+            childrenRewarders[i].onReward(_pid, _user, _to, 0, _amt);
+            unchecked {++i;}
+        }
     }
-    
+
     function pendingTokens(uint pid, address user, uint) override external view returns (IERC20[] memory rewardTokens, uint[] memory rewardAmounts) {
         IERC20[] memory _rewardTokens = new IERC20[](1);
         _rewardTokens[0] = (rewardToken);
@@ -159,6 +189,17 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
         pending = (user.amount * accRewardPerShare / ACC_TOKEN_PRECISION) - user.rewardDebt;
     }
 
+    /// @notice View all pending tokens inc. children in a single call!
+    function pendingTokenAll(uint _pid, address _user) public view returns (uint[] memory pending) {
+        uint len = childrenRewarders.length;
+        pending = new uint[](len + 1);
+        pending[0] = pendingToken(_pid, _user);
+        for(uint i = 0; i < len;) {
+            pending[i + 1] = IRewarderExt(address(childrenRewarders[i])).pendingToken(_pid, _user);
+            unchecked {++i;}
+        }
+    }
+
     /// @notice Update reward variables for all pools. Be careful of gas spending!
     function massUpdatePools() public {
         uint len = poolIds.length;
@@ -186,7 +227,7 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
         }
     }
 
-    function recoverTokens(address _tokenAddress, uint _amt, address _adr) external onlyOwner {        
+    function recoverTokens(address _tokenAddress, uint _amt, address _adr) external onlyOwner {
         IERC20(_tokenAddress).safeTransfer(_adr, _amt);
 
         emit AdminTokenRecovery(_tokenAddress, _amt, _adr);

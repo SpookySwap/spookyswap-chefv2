@@ -11,7 +11,7 @@ import "hardhat-spdx-license-identifier"
 import { HardhatUserConfig } from "hardhat/types"
 import "hardhat-gas-reporter"
 
-const MASTER_PID = 66
+const MASTER_PID = 73
 const MCV1 = "0x2b2929E785374c651a81A63878Ab22742656DcDd"
 const MCV2 = "0x7bC91039C93477515c777e9367Ae49738CC243d0"
 

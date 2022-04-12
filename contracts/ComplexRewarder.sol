@@ -190,12 +190,16 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
     }
 
     /// @notice View all pending tokens inc. children in a single call!
-    function pendingTokenAll(uint _pid, address _user) public view returns (uint[] memory pending) {
+    function pendingTokenAll(uint _pid, address _user) public view returns (address[] memory rewardTokens, uint[] memory pending) {
         uint len = childrenRewarders.length;
         pending = new uint[](len + 1);
+        rewardTokens = new address[](len + 1);
         pending[0] = pendingToken(_pid, _user);
+        rewardTokens[0] = address(rewardToken);
         for(uint i = 0; i < len;) {
-            pending[i + 1] = IRewarderExt(address(childrenRewarders[i])).pendingToken(_pid, _user);
+            IRewarderExt rew = IRewarderExt(address(childrenRewarders[i]));
+            pending[i + 1] = rew.pendingToken(_pid, _user);
+            rewardTokens[i + 1] = address(rew.rewardToken());
             unchecked {++i;}
         }
     }

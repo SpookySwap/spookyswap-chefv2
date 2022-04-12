@@ -10,6 +10,7 @@ import "./MasterChefV2.sol";
 
 interface IRewarderExt is IRewarder {
     function pendingToken(uint _pid, address _user) external view returns (uint pending);
+    function rewardToken() external view returns (IERC20);
 }
 
 interface IERC20Ext is IERC20 {

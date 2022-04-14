@@ -79,15 +79,6 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
         childrenRewarders.push(child);
     }
 
-    //careful! these need to be ChildRewarders! use createChild instead if applicable.
-    function addChildren(IRewarder[] calldata rewarders) external onlyOwner {
-        uint len = rewarders.length;
-        for(uint i = 0; i < len;) {
-            childrenRewarders.push(rewarders[i]);
-            unchecked {++i;}
-        }
-    }
-
     function popChildren(uint amount) external onlyOwner {
         for(uint i = 0; i < amount;) {
             childrenRewarders.pop();

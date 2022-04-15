@@ -7,9 +7,17 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import "./MasterChefV2.sol";
-import "./ChildRewarder.sol";
 
-contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
+interface IRewarderExt is IRewarder {
+    function pendingToken(uint _pid, address _user) external view returns (uint pending);
+    function rewardToken() external view returns (IERC20);
+}
+
+interface IERC20Ext is IERC20 {
+    function decimals() external returns (uint);
+}
+
+contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     IERC20 public immutable rewardToken;
@@ -39,14 +47,14 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
     /// @notice Info of each user that stakes LP tokens.
     mapping (uint => mapping (address => UserInfo)) public userInfo;
     /// @dev Total allocation points. Must be the sum of all allocation points in all pools.
-    uint public totalAllocPoint;
+    uint totalAllocPoint;
 
     uint public rewardPerSecond;
     uint public immutable ACC_TOKEN_PRECISION;
 
     address private immutable MASTERCHEF_V2;
 
-    IRewarder[] public childrenRewarders;
+    address private immutable PARENT;
 
     event LogOnReward(address indexed user, uint indexed pid, uint amount, address indexed to);
     event LogPoolAddition(uint indexed pid, uint allocPoint);
@@ -56,42 +64,23 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
     event AdminTokenRecovery(address _tokenAddress, uint _amt, address _adr);
     event LogInit();
 
-    modifier onlyMCV2 {
-        require(
-            msg.sender == MASTERCHEF_V2,
-            "Only MCV2 can call this function."
-        );
+    modifier onlyParent {
+        require(msg.sender == PARENT, "Only PARENT can call this function.");
         _;
     }
 
-    constructor (IERC20Ext _rewardToken, uint _rewardPerSecond, address _MASTERCHEF_V2) {
+    constructor (IERC20Ext _rewardToken, uint _rewardPerSecond, address _MASTERCHEF_V2, address _PARENT) {
         uint decimalsRewardToken = _rewardToken.decimals();
         require(decimalsRewardToken < 30, "Token has way too many decimals");
         ACC_TOKEN_PRECISION = 10**(30 - decimalsRewardToken);
         rewardToken = _rewardToken;
         rewardPerSecond = _rewardPerSecond;
         MASTERCHEF_V2 = _MASTERCHEF_V2;
-    }
-
-    function createChild(IERC20Ext _rewardToken, uint _rewardPerSecond) external onlyOwner {
-        IRewarder child = new ChildRewarder(_rewardToken, _rewardPerSecond, MASTERCHEF_V2, address(this));
-        Ownable(address(child)).transferOwnership(msg.sender);
-        childrenRewarders.push(child);
-    }
-
-    function popChildren(uint amount) external onlyOwner {
-        for(uint i = 0; i < amount;) {
-            childrenRewarders.pop();
-            unchecked {++i;}
-        }
-    }
-
-    function getChildrenRewarders() external view returns (IRewarder[] memory) {
-        return childrenRewarders;
+        PARENT = _PARENT;
     }
 
 
-    function onReward (uint _pid, address _user, address _to, uint, uint _amt) onlyMCV2 nonReentrant override external {
+    function onReward (uint _pid, address _user, address _to, uint, uint _amt) onlyParent nonReentrant override external {
         PoolInfo memory pool = updatePool(_pid);
         UserInfo storage user = userInfo[_pid][_user];
         uint pending;
@@ -102,11 +91,6 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
         user.amount = _amt;
         user.rewardDebt = _amt * pool.accRewardPerShare / ACC_TOKEN_PRECISION;
         emit LogOnReward(_user, _pid, pending, _to);
-        uint len = childrenRewarders.length;
-        for(uint i = 0; i < len;) {
-            childrenRewarders[i].onReward(_pid, _user, _to, 0, _amt);
-            unchecked {++i;}
-        }
     }
 
     function pendingTokens(uint pid, address user, uint) override external view returns (IERC20[] memory rewardTokens, uint[] memory rewardAmounts) {
@@ -178,21 +162,6 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
             accRewardPerShare = accRewardPerShare + (reward * ACC_TOKEN_PRECISION / lpSupply);
         }
         pending = (user.amount * accRewardPerShare / ACC_TOKEN_PRECISION) - user.rewardDebt;
-    }
-
-    /// @notice View all pending tokens inc. children in a single call!
-    function pendingTokenAll(uint _pid, address _user) public view returns (address[] memory rewardTokens, uint[] memory pending) {
-        uint len = childrenRewarders.length;
-        pending = new uint[](len + 1);
-        rewardTokens = new address[](len + 1);
-        pending[0] = pendingToken(_pid, _user);
-        rewardTokens[0] = address(rewardToken);
-        for(uint i = 0; i < len;) {
-            IRewarderExt rew = IRewarderExt(address(childrenRewarders[i]));
-            pending[i + 1] = rew.pendingToken(_pid, _user);
-            rewardTokens[i + 1] = address(rew.rewardToken());
-            unchecked {++i;}
-        }
     }
 
     /// @notice Update reward variables for all pools. Be careful of gas spending!

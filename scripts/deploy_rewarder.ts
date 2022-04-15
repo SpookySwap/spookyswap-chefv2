@@ -9,7 +9,7 @@ async function main() {
     const rewardPerSecond = 0
     // end of edit
 
-    const masterchefv2 = "0x7bC91039C93477515c777e9367Ae49738CC243d0"
+    const masterchefv2 = "0x18b4f774fdC7BF685daeeF66c2990b1dDd9ea6aD"
     const Rewarder = await ethers.getContractFactory("ComplexRewarder");
     const rewarder = await Rewarder.deploy(rewardToken, rewardPerSecond, masterchefv2);
     await rewarder.deployed()

@@ -42,7 +42,7 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
     /// @notice Info of each user that stakes LP tokens.
     mapping (uint => mapping (address => UserInfo)) public userInfo;
     /// @dev Total allocation points. Must be the sum of all allocation points in all pools.
-    uint totalAllocPoint;
+    uint public totalAllocPoint;
 
     uint public rewardPerSecond;
     uint public immutable ACC_TOKEN_PRECISION;

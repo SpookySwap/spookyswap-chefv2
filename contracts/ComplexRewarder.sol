@@ -110,11 +110,17 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
     }
 
     function pendingTokens(uint pid, address user, uint) override external view returns (IERC20[] memory rewardTokens, uint[] memory rewardAmounts) {
-        IERC20[] memory _rewardTokens = new IERC20[](1);
-        _rewardTokens[0] = (rewardToken);
-        uint[] memory _rewardAmounts = new uint[](1);
-        _rewardAmounts[0] = pendingToken(pid, user);
-        return (_rewardTokens, _rewardAmounts);
+        uint len = childrenRewarders.length;
+        rewardTokens = new IERC20[](len + 1);
+        rewardTokens[0] = rewardToken;
+        rewardAmounts = new uint[](len + 1);
+        rewardAmounts[0] = pendingToken(pid, user);
+        for(uint i = 0; i < len;) {
+            IRewarderExt rew = IRewarderExt(address(childrenRewarders[i]));
+            rewardAmounts[i + 1] = rew.pendingToken(pid, user);
+            rewardTokens[i + 1] = rew.rewardToken();
+            unchecked {++i;}
+        }
     }
 
     /// @notice Sets the reward per second to be distributed. Can only be called by the owner.
@@ -178,21 +184,6 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
             accRewardPerShare = accRewardPerShare + (reward * ACC_TOKEN_PRECISION / lpSupply);
         }
         pending = (user.amount * accRewardPerShare / ACC_TOKEN_PRECISION) - user.rewardDebt;
-    }
-
-    /// @notice View all pending tokens inc. children in a single call!
-    function pendingTokenAll(uint _pid, address _user) public view returns (address[] memory rewardTokens, uint[] memory pending) {
-        uint len = childrenRewarders.length;
-        pending = new uint[](len + 1);
-        rewardTokens = new address[](len + 1);
-        pending[0] = pendingToken(_pid, _user);
-        rewardTokens[0] = address(rewardToken);
-        for(uint i = 0; i < len;) {
-            IRewarderExt rew = IRewarderExt(address(childrenRewarders[i]));
-            pending[i + 1] = rew.pendingToken(_pid, _user);
-            rewardTokens[i + 1] = address(rew.rewardToken());
-            unchecked {++i;}
-        }
     }
 
     /// @notice Update reward variables for all pools. Be careful of gas spending!

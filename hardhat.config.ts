@@ -22,6 +22,7 @@ task("addpool", "Adds pool to MCv2").addParam("allocPoint", "Amount of points to
 
     let allocPoint, lpToken, tx
     allocPoint = hre.ethers.utils.parseUnits((taskArgs.allocPoint).toString(), 0)
+    let rewarder = taskArgs.rewarder == undefined ? "0x0000000000000000000000000000000000000000" : taskArgs.rewarder
 
     try {
         lpToken = hre.ethers.utils.getAddress(taskArgs.lpToken)
@@ -37,7 +38,7 @@ task("addpool", "Adds pool to MCv2").addParam("allocPoint", "Amount of points to
     let MCv2 = await hre.ethers.getContractAt("MasterChefV2", MCV2)
 
     console.log("Adding pool...")
-    tx = await MCv2.add(0, lpToken, taskArgs.rewarder, taskArgs.update)
+    tx = await MCv2.add(0, lpToken, rewarder, taskArgs.update)
     await tx.wait();
 
     console.log("Sleeping for " + taskArgs.sleep + " seconds...")
@@ -50,7 +51,7 @@ task("addpool", "Adds pool to MCv2").addParam("allocPoint", "Amount of points to
 
     console.log("Setting new MCv2 pool allocation...")
     let pid = (await MCv2.poolInfoAmount()) - 1
-    tx = await MCv2.set(pid, allocPoint, taskArgs.rewarder, overwrite, taskArgs.update)
+    tx = await MCv2.set(pid, allocPoint, rewarder, overwrite, taskArgs.update)
     await tx.wait();
 });
 

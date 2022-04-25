@@ -50,7 +50,7 @@ task("addpool", "Adds pool to MCv2").addParam("allocPoint", "Amount of points to
     await tx.wait();
 
     console.log("Setting new MCv2 pool allocation...")
-    let pid = (await MCv2.poolInfoAmount) - 1
+    let pid = (await MCv2.poolInfoAmount()) - 1
     tx = await MCv2.set(pid, allocPoint, rewarders, overwrite, taskArgs.update)
     await tx.wait();
 });

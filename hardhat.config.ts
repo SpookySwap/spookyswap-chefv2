@@ -15,7 +15,7 @@ const MASTER_PID = 73
 const MCV1 = "0x2b2929E785374c651a81A63878Ab22742656DcDd"
 const MCV2 = "0x7bC91039C93477515c777e9367Ae49738CC243d0"
 
-task("addpool", "Adds pool to MCv2").addParam("allocPoint", "Amount of points to allocate to the new pool", undefined, types.int).addParam("lpToken", "Address of the LP tokens for the farm").addOptionalParam("update", "true if massUpdateAllPools should be called", false, types.boolean).addParam("sleep", "Time in seconds to sleep between adding and setting up the pool", undefined, types.int).setAction(async (taskArgs, hre) => {
+task("addpool", "Adds pool to MCv2").addParam("allocPoint", "Amount of points to allocate to the new pool", undefined, types.int).addParam("lpToken", "Address of the LP tokens for the farm").addOptionalParam("rewarder", "Address of the rewardercontract for the farm").addOptionalParam("update", "true if massUpdateAllPools should be called", false, types.boolean).addParam("sleep", "Time in seconds to sleep between adding and setting up the pool", undefined, types.int).setAction(async (taskArgs, hre) => {
     const wait = (milliseconds) => {
       return new Promise(resolve => setTimeout(resolve, milliseconds))
     }
@@ -31,14 +31,13 @@ task("addpool", "Adds pool to MCv2").addParam("allocPoint", "Amount of points to
     }
 
     //set this manually here when needed
-    let rewarders = []
     let overwrite = true
 
     let MCv1 = await hre.ethers.getContractAt("MasterChef", MCV1)
     let MCv2 = await hre.ethers.getContractAt("MasterChefV2", MCV2)
 
     console.log("Adding pool...")
-    tx = await MCv2.add(0, lpToken, rewarders, taskArgs.update)
+    tx = await MCv2.add(0, lpToken, taskArgs.rewarder, taskArgs.update)
     await tx.wait();
 
     console.log("Sleeping for " + taskArgs.sleep + " seconds...")
@@ -51,7 +50,7 @@ task("addpool", "Adds pool to MCv2").addParam("allocPoint", "Amount of points to
 
     console.log("Setting new MCv2 pool allocation...")
     let pid = (await MCv2.poolInfoAmount) - 1
-    tx = await MCv2.set(pid, allocPoint, rewarders, overwrite, taskArgs.update)
+    tx = await MCv2.set(pid, allocPoint, taskArgs.rewarder, overwrite, taskArgs.update)
     await tx.wait();
 });
 
@@ -94,7 +93,7 @@ const config: HardhatUserConfig = {
       gasPrice: 20000000000,
     },
     fantom: {
-      url: "https://rpc.ftm.tools",
+      url: "https://rpc.ankr.com/fantom",
       accounts,
       chainId: 250,
       gasPrice: 1000000000000,

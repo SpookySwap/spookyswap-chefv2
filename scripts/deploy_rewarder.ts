@@ -5,7 +5,7 @@ const wftm = "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83"
 async function main() {
 
     // Edit these before deployment
-    const rewardToken = wftm 
+    const rewardToken = "0x412a13C109aC30f0dB80AD3Bd1DeFd5D0A6c0Ac6" 
     const rewardPerSecond = 0
     // end of edit
 

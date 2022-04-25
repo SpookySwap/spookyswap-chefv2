@@ -21,7 +21,7 @@
     "deploy": "npx hardhat --network fantom deploy",
     "deploy:ftmtest": "npx hardhat --network fantomtest deploy",
     "deploy:localhost": "npx hardhat --network localhost deploy",
-    "addpool": "npx hardhat --network fantom run scripts/acelab_addpool.ts"
+    "rewarder": "npx hardhat --network fantom run scripts/deploy_rewarder.ts"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.0",

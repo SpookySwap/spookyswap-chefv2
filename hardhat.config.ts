@@ -13,7 +13,7 @@ import "hardhat-gas-reporter"
 
 const MASTER_PID = 73
 const MCV1 = "0x2b2929E785374c651a81A63878Ab22742656DcDd"
-const MCV2 = "0x7bC91039C93477515c777e9367Ae49738CC243d0"
+const MCV2 = "0x18b4f774fdC7BF685daeeF66c2990b1dDd9ea6aD"
 
 task("addpool", "Adds pool to MCv2").addParam("allocPoint", "Amount of points to allocate to the new pool", undefined, types.int).addParam("lpToken", "Address of the LP tokens for the farm").addOptionalParam("rewarder", "Address of the rewardercontract for the farm").addOptionalParam("update", "true if massUpdateAllPools should be called", false, types.boolean).addParam("sleep", "Time in seconds to sleep between adding and setting up the pool", undefined, types.int).setAction(async (taskArgs, hre) => {
     const wait = (milliseconds) => {

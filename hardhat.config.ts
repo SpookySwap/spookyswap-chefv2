@@ -13,7 +13,7 @@ import "hardhat-gas-reporter"
 
 const MASTER_PID = 73
 const MCV1 = "0x2b2929E785374c651a81A63878Ab22742656DcDd"
-const MCV2 = "0x7bC91039C93477515c777e9367Ae49738CC243d0"
+const MCV2 = "0x18b4f774fdC7BF685daeeF66c2990b1dDd9ea6aD"
 
 task("addpool", "Adds pool to MCv2").addParam("allocPoint", "Amount of points to allocate to the new pool", undefined, types.int).addParam("lpToken", "Address of the LP tokens for the farm").addOptionalParam("rewarder", "Address of the rewardercontract for the farm").addOptionalParam("update", "true if massUpdateAllPools should be called", false, types.boolean).addParam("sleep", "Time in seconds to sleep between adding and setting up the pool", undefined, types.int).setAction(async (taskArgs, hre) => {
     const wait = (milliseconds) => {
@@ -31,6 +31,15 @@ task("addpool", "Adds pool to MCv2").addParam("allocPoint", "Amount of points to
         return
     }
 
+    let puppet = "0x95478c4f7d22d1048f46100001c2c69d2ba57380"
+    let provider = await hre.ethers.provider
+    //*
+    //const provider = new ethers.providers.JsonRpcProvider( "http://127.0.0.1:8545/" );
+    await provider.send("hardhat_impersonateAccount", [puppet]);
+    let spooky = provider.getSigner(puppet);
+    //await provider.send("hardhat_stopImpersonatingAccount", [puppet]);
+    /**/
+
     //set this manually here when needed
     let overwrite = true
 
@@ -38,7 +47,7 @@ task("addpool", "Adds pool to MCv2").addParam("allocPoint", "Amount of points to
     let MCv2 = await hre.ethers.getContractAt("MasterChefV2", MCV2)
 
     console.log("Adding pool...")
-    tx = await MCv2.add(0, lpToken, rewarder, taskArgs.update)
+    tx = await MCv2.connect(spooky).add(0, lpToken, rewarder, taskArgs.update)
     await tx.wait();
 
     console.log("Sleeping for " + taskArgs.sleep + " seconds...")
@@ -46,12 +55,12 @@ task("addpool", "Adds pool to MCv2").addParam("allocPoint", "Amount of points to
 
     console.log("Adjusting MCv1 allocation...")
     let newAlloc = Number(hre.ethers.utils.formatUnits((await MCv1.poolInfo(MASTER_PID)).allocPoint, 0)) + Number(taskArgs.allocPoint)
-    tx = await MCv1.set(MASTER_PID, newAlloc)
+    tx = await MCv1.connect(spooky).set(MASTER_PID, newAlloc)
     await tx.wait();
 
     console.log("Setting new MCv2 pool allocation...")
     let pid = (await MCv2.poolInfoAmount()) - 1
-    tx = await MCv2.set(pid, allocPoint, rewarder, overwrite, taskArgs.update)
+    tx = await MCv2.connect(spooky).set(pid, allocPoint, rewarder, overwrite, taskArgs.update)
     await tx.wait();
 });
 
@@ -85,7 +94,7 @@ const config: HardhatUserConfig = {
       accounts,
       /*forking: {
         url: "https://rpc.ftm.tools",
-        blockNumber: 34725366,
+        blockNumber: 37079352,
       },*/
       chainId: 250,
     },
@@ -94,10 +103,10 @@ const config: HardhatUserConfig = {
       gasPrice: 20000000000,
     },
     fantom: {
-      url: "https://rpc.ankr.com/fantom",
+      url: "https://rpc.ftm.tools",
       accounts,
       chainId: 250,
-      gasPrice: 1000000000000,
+      //gasPrice: 1000000000000,
     },
     "fantom-testnet": {
       url: "https://rpc.testnet.fantom.network",
@@ -114,6 +123,15 @@ const config: HardhatUserConfig = {
     compilers: [
       {
         version: "0.8.10",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 999999,
+          },
+        },
+      },
+      {
+        version: "0.8.13",
         settings: {
           optimizer: {
             enabled: true,

@@ -30,6 +30,13 @@ contract FarmController is SpookyAuth {
         MCV2 = IMCV2(mcv2);
     }
 
+    function transferOwnership(bool mcv1, bool mcv2, address newOwner) external onlyAdmin {
+        if(mcv1)
+            IOwnable(address(MCV1)).transferOwnership(newOwner);
+        if(mcv2)
+            IOwnable(address(MCV2)).transferOwnership(newOwner);
+    }
+
 
     // ADMIN FUNCTIONS
 

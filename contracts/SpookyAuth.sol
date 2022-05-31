@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.13;
 
+interface IOwnable {
+    function transferOwnership(address newOwner) external;
+}
+
 abstract contract SpookyAuth {
     // set of addresses that can perform certain functions
     mapping(address => bool) public isAuth;

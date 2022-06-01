@@ -9,7 +9,7 @@ abstract contract SpookyAuth {
     // set of addresses that can perform certain functions
     mapping(address => bool) public isAuth;
     address[] public authorized;
-    address admin;
+    address public admin;
 
     modifier onlyAuth() {
         require(isAuth[msg.sender] || msg.sender == admin, "SpookySwap: FORBIDDEN (auth)");

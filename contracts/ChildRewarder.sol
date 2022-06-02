@@ -20,7 +20,7 @@ interface IERC20Ext is IERC20 {
 contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    IERC20 public immutable rewardToken;
+    IERC20 public rewardToken;
 
     /// @notice Info of each MCV2 user.
     /// `amount` LP token amount the user has provided.
@@ -50,11 +50,13 @@ contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
     uint totalAllocPoint;
 
     uint public rewardPerSecond;
-    uint public immutable ACC_TOKEN_PRECISION;
+    uint public ACC_TOKEN_PRECISION;
 
-    address private immutable MASTERCHEF_V2;
+    address private MASTERCHEF_V2;
 
-    address private immutable PARENT;
+    address private PARENT;
+
+    bool notinit = true;
 
     event LogOnReward(address indexed user, uint indexed pid, uint amount, address indexed to);
     event LogPoolAddition(uint indexed pid, uint allocPoint);
@@ -69,7 +71,11 @@ contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
         _;
     }
 
-    constructor (IERC20Ext _rewardToken, uint _rewardPerSecond, address _MASTERCHEF_V2, address _PARENT) {
+    constructor () {} //use init()
+
+    function init(IERC20Ext _rewardToken, uint _rewardPerSecond, address _MASTERCHEF_V2, address _PARENT) external {
+        require(notinit);
+
         uint decimalsRewardToken = _rewardToken.decimals();
         require(decimalsRewardToken < 30, "Token has way too many decimals");
         ACC_TOKEN_PRECISION = 10**(30 - decimalsRewardToken);
@@ -77,6 +83,8 @@ contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
         rewardPerSecond = _rewardPerSecond;
         MASTERCHEF_V2 = _MASTERCHEF_V2;
         PARENT = _PARENT;
+
+        notinit = false;
     }
 
 

@@ -76,7 +76,8 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
     }
 
     function createChild(IERC20Ext _rewardToken, uint _rewardPerSecond) external onlyOwner {
-        IRewarder child = new ChildRewarder(_rewardToken, _rewardPerSecond, MASTERCHEF_V2, address(this));
+        ChildRewarder child = new ChildRewarder();
+        child.init(_rewardToken, _rewardPerSecond, MASTERCHEF_V2, address(this));
         Ownable(address(child)).transferOwnership(msg.sender);
         childrenRewarders.push(child);
         emit ChildCreated(address(child), address(_rewardToken));

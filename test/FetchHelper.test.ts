@@ -1,5 +1,6 @@
 import { deploy, prepare } from "./utilities"
 import { inspect } from 'util'
+import { BigNumber } from "ethers"
 
 
 const tokens = {
@@ -114,6 +115,10 @@ const deepKeyify = (arr) => {
 }
 
 const keyifier = (key, value) => {
+  if (typeof value === 'object' && value.type && value.type === 'BigNumber') {
+    return `BigNumber (value: ${BigNumber.from(value.hex).toString()})`
+  }
+
   if (!Array.isArray(value)) return value
   
   const textKeys = Object.keys(value).filter((k) => isNaN(Number(k)))

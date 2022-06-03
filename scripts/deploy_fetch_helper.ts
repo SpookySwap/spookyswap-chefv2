@@ -1,8 +1,7 @@
 import { ethers, run } from "hardhat"
 
 async function main() {
-
-    const FetchHelper = await ethers.getContractFactory("FetchHelper");
+    const FetchHelper = await ethers.getContractFactory("SpookyFetchHelper");
     const fetchHelper = await FetchHelper.deploy();
     await fetchHelper.deployed()
   

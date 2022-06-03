@@ -9,7 +9,6 @@ import "./MasterChef.sol";
 import "./MasterChefV2.sol";
 import "./ChildRewarder.sol";
 import "./ComplexRewarder.sol";
-import "hardhat/console.sol";
 
 contract SpookyFetchHelper {
     using SafeERC20 for IERC20;
@@ -56,6 +55,14 @@ contract SpookyFetchHelper {
       return version == 1 ? masterchef : masterchefv2;
     }
 
+    function _tryTokenDecimals (IERC20 token) internal view returns (uint8) {
+      try ERC20(address(token)).decimals() returns (uint8 decimals) {
+        return decimals;
+      } catch {
+        return 0;
+      }
+    }
+
     function _tryGetChildRewarders (IRewarder rewarder) internal view returns (IRewarder[] memory) {
       if (address(rewarder) == address(0)) return new IRewarder[](0);
 
@@ -84,8 +91,8 @@ contract SpookyFetchHelper {
         quoteBalanceInLp: quote.balanceOf(address(lp)),
         lpBalanceInChef: lp.balanceOf(_versionedMasterchef(version)),
         lpSupply: lp.totalSupply(),
-        tokenDecimals: ERC20(address(token)).decimals(),
-        quoteDecimals: ERC20(address(quote)).decimals()
+        tokenDecimals: _tryTokenDecimals(token),
+        quoteDecimals: _tryTokenDecimals(quote)
       });
     }
 

@@ -1,7 +1,13 @@
-import { deploy, prepare } from "./utilities"
+import { deploy, getBigNumber, prepare } from "./utilities"
 import { inspect } from 'util'
 import { BigNumber } from "ethers"
+import { ethers, network } from "hardhat"
 
+
+const addresses = {
+  mcv2: '0x18b4f774fdC7BF685daeeF66c2990b1dDd9ea6aD',
+  mcv2Owner: '0x95478c4f7d22d1048f46100001c2c69d2ba57380',
+}
 
 const tokens = {
   boo: '0x841FAD6EAe12c286d1Fd18d1d525DFfA75C7EFFE',
@@ -137,8 +143,71 @@ const consoleLog = (logs) => {
 
 describe.only("FetchHelper", function() {
   before(async function() {
-    await prepare(this, ["SpookyFetchHelper"])
-    await deploy(this, [["FetchHelper", this.SpookyFetchHelper]])
+    await prepare(this, ["SpookyFetchHelper", "ERC20Mock", "ComplexRewarder"])
+
+    await deploy(this, [
+      // Deploy Fetch Helper
+      ["FetchHelper", this.SpookyFetchHelper],
+
+      // Deploy Dummy + Reward token token
+      ["dummyLP", this.ERC20Mock, ["DummyLP", "DummyLP", getBigNumber(10)]],
+      ["dummyRewardToken1", this.ERC20Mock, ["dummyReward1", "dummyReward1", getBigNumber(10)]],
+      ["dummyRewardToken2", this.ERC20Mock, ["dummyReward2", "dummyReward2", getBigNumber(10)]],
+      ["dummyRewardToken3", this.ERC20Mock, ["dummyReward3", "dummyReward3", getBigNumber(10)]],
+    ])
+
+    // Create complex rewarder, add 2 child rewarders
+    await deploy(this, [
+      ["complexRewarder", this.ComplexRewarder, [this.dummyRewardToken1.address, getBigNumber(3, 16), addresses.mcv2]]
+    ])
+    await this.complexRewarder.createChild(this.dummyRewardToken2.address, getBigNumber(2, 16))
+    await this.complexRewarder.createChild(this.dummyRewardToken3.address, getBigNumber(1, 16))
+
+    // Send Tokens to complex + child rewarders
+    await this.dummyRewardToken1.transfer(this.complexRewarder.address, getBigNumber(10))
+    const [child1Address, child2Address] = await this.complexRewarder.getChildrenRewarders()
+    this.childRewarder1 = await ethers.getContractAt("ChildRewarder", child1Address)
+    this.childRewarder2 = await ethers.getContractAt("ChildRewarder", child2Address)
+    await this.dummyRewardToken2.transfer(this.childRewarder1.address, getBigNumber(10))
+    await this.dummyRewardToken3.transfer(this.childRewarder2.address, getBigNumber(10))
+
+    // Get constants
+    this.chefv2 = await ethers.getContractAt("MasterChefV2", addresses.mcv2)
+    await network.provider.request({
+      method: "hardhat_impersonateAccount",
+      params: [addresses.mcv2Owner],
+    });
+    const chefOwner = await ethers.getSigner(addresses.mcv2Owner)
+    const dummyLpPid = await this.chefv2.poolInfoAmount()
+
+    // Add Dummy LP token pool
+    await this.chefv2.connect(chefOwner).add(100, this.dummyLP.address, this.complexRewarder.address, true)
+    await this.complexRewarder.add(100, dummyLpPid, true)
+    await this.childRewarder1.add(100, dummyLpPid, true)
+    await this.childRewarder2.add(100, dummyLpPid, true)
+
+    // Stake Alice in Dummy LP pool
+    await this.dummyLP.approve(this.chefv2.address, getBigNumber(10))
+    await this.chefv2["deposit(uint256,uint256)"](dummyLpPid, getBigNumber(5))
+
+    // Mine 50 seconds
+    const block = await ethers.provider.getBlock('latest')
+    const timestamp = block.timestamp
+    await network.provider.send('evm_setNextBlockTimestamp', [timestamp + 50])
+    await network.provider.send('evm_mine')
+
+    // Add Dummy LP pool to farms list
+    this.complexRewardedFarm = {
+      pid: dummyLpPid,
+      version: 2,
+      lpSymbol: 'DUMMY-LP',
+      lp: this.dummyLP.address,
+      token: '',
+      quoteToken: '',
+      rewardTokens: [this.dummyRewardToken1.address, this.dummyRewardToken2.address, this.dummyRewardToken3.address],
+      stakedUser: this.alice.address,
+      unstakedUser: '0x3a7679E3662bC7c2EB2B1E71FA221dA430c6f64B',
+    } as FarmConfig
   })
 
   describe("Fetching Lp", async function() {
@@ -206,6 +275,25 @@ describe.only("FetchHelper", function() {
         })
       }
 
+    })
+  })
+
+  describe("Complex + Child Rewarder Farm", async function() {
+    it("Fetching Farm data should succeed", async function() {
+      const farmData = await this.FetchHelper.fetchFarmData(this.complexRewardedFarm.pid, this.complexRewardedFarm.version)
+      consoleLog({
+        [this.complexRewardedFarm.lpSymbol]: deepKeyify(farmData)
+      })
+    })
+    it("Fetching Farm User data should succeed", async function() {
+      const stakedUserFarmData = await this.FetchHelper.fetchUserFarmData(this.complexRewardedFarm.stakedUser, this.complexRewardedFarm.pid, this.complexRewardedFarm.version)
+      consoleLog({
+        [`${this.complexRewardedFarm.lpSymbol}-staked`]: deepKeyify(stakedUserFarmData),
+      })
+      const unstakedUserFarmData = await this.FetchHelper.fetchUserFarmData(this.complexRewardedFarm.unstakedUser, this.complexRewardedFarm.pid, this.complexRewardedFarm.version)
+      consoleLog({
+        [`${this.complexRewardedFarm.lpSymbol}-unstaked`]: deepKeyify(unstakedUserFarmData),
+      })
     })
   })
 })

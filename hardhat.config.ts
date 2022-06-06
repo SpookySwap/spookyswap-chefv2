@@ -83,10 +83,10 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       accounts,
-      /*forking: {
+      forking: {
         url: "https://rpc.ftm.tools",
-        blockNumber: 34725366,
-      },*/
+        blockNumber: 39697349,
+      },
       chainId: 250,
     },
     localhost: {

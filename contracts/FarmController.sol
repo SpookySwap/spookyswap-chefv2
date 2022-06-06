@@ -2,14 +2,15 @@
 
 pragma solidity 0.8.13;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./SpookyAuth.sol";
 import "./interfaces/IRewarder.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IMCV1 {
     function setBooPerSecond(uint256 _booPerSecond) external;
     function add(uint256 _allocPoint, IERC20 _lpToken) external;
     function set(uint256 _pid, uint256 _allocPoint) external;
+    function booPerSecond() external returns (uint);
 }
 
 interface IMCV2 {
@@ -21,8 +22,8 @@ interface IMCV2 {
 
 contract FarmController is SpookyAuth {
 
-    IMCV1 MCV1;
-    IMCV2 MCV2;
+    IMCV1 public MCV1;
+    IMCV2 public MCV2;
 
 
     constructor(address mcv1, address mcv2) {
@@ -69,17 +70,24 @@ contract FarmController is SpookyAuth {
         MCV2.setV1HarvestQueryTime(newTime, inDays);
     }
 
-    function setBooPerSecond(uint256 _booPerSecond) external onlyAuth {
+    //MCV1
+
+    function setBooPerSecondV1(uint256 _booPerSecond) external onlyAuth {
+        require(_booPerSecond < MCV1.booPerSecond());
+        MCV1.setBooPerSecond(_booPerSecond);
+    }
+
+    function adminSetBooPerSecondV1(uint256 _booPerSecond) external onlyAdmin {
         MCV1.setBooPerSecond(_booPerSecond);
     }
 
     // Add a new lp to the pool. Can only be called by the owner.
-    function add(uint256 _allocPoint, IERC20 _lpToken) external onlyAuth {
+    function addV1(uint256 _allocPoint, IERC20 _lpToken) external onlyAuth {
         MCV1.add(_allocPoint, _lpToken);
     }
 
     // Update the given pool's BOO allocation point. Can only be called by the owner.
-    function set(uint256 _pid, uint256 _allocPoint) external onlyAuth {
+    function setV1(uint256 _pid, uint256 _allocPoint) external onlyAuth {
         MCV1.set(_pid, _allocPoint);
     }
 }

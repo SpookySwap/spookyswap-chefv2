@@ -26,6 +26,7 @@ contract LiquidityBrewer is SpookyApprovals, ReentrancyGuard, SelfPermit, Multic
         uint amountBDesired,
         uint amountAMin,
         uint amountBMin,
+        address to,
         uint deadline,
         uint MCV2PID
     ) external nonReentrant {
@@ -35,7 +36,7 @@ contract LiquidityBrewer is SpookyApprovals, ReentrancyGuard, SelfPermit, Multic
         _approveIfNeeded(tokenB, address(Router));
         (,, uint liquidity) = Router.addLiquidity(tokenA, tokenB, amountADesired, amountBDesired, amountAMin, amountBMin, address(this), deadline);
         _approveIfNeeded(address(MCV2.lpToken(MCV2PID)), address(MCV2));
-        MCV2.deposit(MCV2PID, liquidity, msg.sender);
+        MCV2.deposit(MCV2PID, liquidity, to);
     }
 
     //add liquidity and deposit to masterchef v2
@@ -44,6 +45,7 @@ contract LiquidityBrewer is SpookyApprovals, ReentrancyGuard, SelfPermit, Multic
         uint amountTokenDesired,
         uint amountTokenMin,
         uint amountETHMin,
+        address to,
         uint deadline,
         uint MCV2PID
     ) external payable nonReentrant {
@@ -51,7 +53,7 @@ contract LiquidityBrewer is SpookyApprovals, ReentrancyGuard, SelfPermit, Multic
         _approveIfNeeded(token, address(Router));
         (,, uint liquidity) = Router.addLiquidityETH{value: msg.value}(token, amountTokenDesired, amountTokenMin, amountETHMin, address(this), deadline);
         _approveIfNeeded(address(MCV2.lpToken(MCV2PID)), address(MCV2));
-        MCV2.deposit(MCV2PID, liquidity, msg.sender);
+        MCV2.deposit(MCV2PID, liquidity, to);
     }
 }
 

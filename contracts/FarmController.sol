@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.13;
 
-import "./SpookyAuth.sol";
+import "./utils/SpookyAuth.sol";
 import "./interfaces/IRewarder.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 

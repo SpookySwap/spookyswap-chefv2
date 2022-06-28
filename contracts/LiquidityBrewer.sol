@@ -3,7 +3,7 @@
 pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "./SpookyApprovals.sol";
+import "./utils/SpookyApprovals.sol";
 
 /// @notice boooo! spooooky!! nyahaha! ₍⸍⸌̣ʷ̣̫⸍̣⸌₎
 contract LiquidityBrewer is SpookyApprovals, ReentrancyGuard {

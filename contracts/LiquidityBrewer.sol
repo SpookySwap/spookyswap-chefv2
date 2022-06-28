@@ -18,6 +18,38 @@ contract LiquidityBrewer is SpookyApprovals, ReentrancyGuard, SelfPermit, Multic
         MCV2 = IMCV2(mcv2);
     }
 
+    //add liquidity
+    function addLiquidity(
+        address tokenA,
+        address tokenB,
+        uint amountADesired,
+        uint amountBDesired,
+        uint amountAMin,
+        uint amountBMin,
+        address to,
+        uint deadline
+    ) external nonReentrant {
+        IERC20(tokenA).transferFrom(msg.sender, address(this), amountADesired);
+        IERC20(tokenB).transferFrom(msg.sender, address(this), amountBDesired);
+        _approveIfNeeded(tokenA, address(Router));
+        _approveIfNeeded(tokenB, address(Router));
+        Router.addLiquidity(tokenA, tokenB, amountADesired, amountBDesired, amountAMin, amountBMin, to, deadline);
+    }
+
+    //add liquidity eth
+    function addLiquidityETH(
+        address token,
+        uint amountTokenDesired,
+        uint amountTokenMin,
+        uint amountETHMin,
+        address to,
+        uint deadline
+    ) external payable nonReentrant {
+        IERC20(token).transferFrom(msg.sender, address(this), amountTokenDesired);
+        _approveIfNeeded(token, address(Router));
+        Router.addLiquidityETH{value: msg.value}(token, amountTokenDesired, amountTokenMin, amountETHMin, to, deadline);
+    }
+
     //add liquidity and deposit to masterchef v2
     function addLiquidityAndDeposit(
         address tokenA,
@@ -54,6 +86,14 @@ contract LiquidityBrewer is SpookyApprovals, ReentrancyGuard, SelfPermit, Multic
         (,, uint liquidity) = Router.addLiquidityETH{value: msg.value}(token, amountTokenDesired, amountTokenMin, amountETHMin, address(this), deadline);
         _approveIfNeeded(address(MCV2.lpToken(MCV2PID)), address(MCV2));
         MCV2.deposit(MCV2PID, liquidity, to);
+    }
+
+    //deposit to masterchef v2
+    function deposit(uint pid, uint amount, address to) external {
+        address token = address(MCV2.lpToken(pid));
+        IERC20(token).transferFrom(msg.sender, address(this), amount);
+        _approveIfNeeded(token, address(MCV2));
+        MCV2.deposit(pid, amount, to);
     }
 }
 

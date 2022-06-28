@@ -4,9 +4,11 @@ pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./utils/SpookyApprovals.sol";
+import "./utils/SelfPermit.sol";
+import "./utils/Multicall.sol";
 
 /// @notice boooo! spooooky!! nyahaha! ₍⸍⸌̣ʷ̣̫⸍̣⸌₎
-contract LiquidityBrewer is SpookyApprovals, ReentrancyGuard {
+contract LiquidityBrewer is SpookyApprovals, ReentrancyGuard, SelfPermit, Multicall {
     IRouter public Router;
     IMCV2 public MCV2;
 

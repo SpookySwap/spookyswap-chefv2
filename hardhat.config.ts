@@ -92,10 +92,10 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       accounts,
-      /*forking: {
+      forking: {
         url: "https://rpc.ftm.tools",
-        blockNumber: 37079352,
-      },*/
+        blockNumber: 40071098,
+      },
       chainId: 250,
     },
     localhost: {
@@ -106,7 +106,7 @@ const config: HardhatUserConfig = {
       url: "https://rpc.ftm.tools",
       accounts,
       chainId: 250,
-      //gasPrice: 1000000000000,
+      gasPrice: 2000000000,
     },
     "fantom-testnet": {
       url: "https://rpc.testnet.fantom.network",
@@ -126,7 +126,7 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 999999,
+            runs: 9999,
           },
         },
       },
@@ -135,7 +135,7 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 999999,
+            runs: 9999,
           },
         },
       },

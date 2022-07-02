@@ -2,52 +2,17 @@
 
 pragma solidity 0.8.13;
 
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./utils/SpookyApprovals.sol";
 import "./utils/SelfPermit.sol";
 import "./utils/Multicall.sol";
+import "./router/UniswapV2Router02.sol";
 
 /// @notice boooo! spooooky!! nyahaha! ₍⸍⸌̣ʷ̣̫⸍̣⸌₎
-contract LiquidityBrewer is SpookyApprovals, ReentrancyGuard, SelfPermit, Multicall {
-    IRouter public Router;
+contract LiquidityBrewer is SpookyApprovals, UniswapV2Router02, SelfPermit, Multicall {
     IMCV2 public MCV2;
 
-
-    constructor(address router, address mcv2) {
-        Router = IRouter(router);
+    constructor(address _factory, address _WETH, address mcv2) UniswapV2Router02(_factory, _WETH) {
         MCV2 = IMCV2(mcv2);
-    }
-
-    //add liquidity
-    function addLiquidity(
-        address tokenA,
-        address tokenB,
-        uint amountADesired,
-        uint amountBDesired,
-        uint amountAMin,
-        uint amountBMin,
-        address to,
-        uint deadline
-    ) external nonReentrant {
-        IERC20(tokenA).transferFrom(msg.sender, address(this), amountADesired);
-        IERC20(tokenB).transferFrom(msg.sender, address(this), amountBDesired);
-        _approveIfNeeded(tokenA, address(Router));
-        _approveIfNeeded(tokenB, address(Router));
-        Router.addLiquidity(tokenA, tokenB, amountADesired, amountBDesired, amountAMin, amountBMin, to, deadline);
-    }
-
-    //add liquidity eth
-    function addLiquidityETH(
-        address token,
-        uint amountTokenDesired,
-        uint amountTokenMin,
-        uint amountETHMin,
-        address to,
-        uint deadline
-    ) external payable nonReentrant {
-        IERC20(token).transferFrom(msg.sender, address(this), amountTokenDesired);
-        _approveIfNeeded(token, address(Router));
-        Router.addLiquidityETH{value: msg.value}(token, amountTokenDesired, amountTokenMin, amountETHMin, to, deadline);
     }
 
     //add liquidity and deposit to masterchef v2
@@ -61,13 +26,14 @@ contract LiquidityBrewer is SpookyApprovals, ReentrancyGuard, SelfPermit, Multic
         address to,
         uint deadline,
         uint MCV2PID
-    ) external nonReentrant {
-        IERC20(tokenA).transferFrom(msg.sender, address(this), amountADesired);
-        IERC20(tokenB).transferFrom(msg.sender, address(this), amountBDesired);
-        _approveIfNeeded(tokenA, address(Router));
-        _approveIfNeeded(tokenB, address(Router));
-        (,, uint liquidity) = Router.addLiquidity(tokenA, tokenB, amountADesired, amountBDesired, amountAMin, amountBMin, address(this), deadline);
-        _approveIfNeeded(address(MCV2.lpToken(MCV2PID)), address(MCV2));
+    ) external ensure(deadline) returns (uint amountA, uint amountB, uint liquidity) {
+        (amountA, amountB) = _addLiquidity(tokenA, tokenB, amountADesired, amountBDesired, amountAMin, amountBMin);
+        address pair = UniswapV2Library.pairFor(factory, tokenA, tokenB);
+        TransferHelper.safeTransferFrom(tokenA, msg.sender, pair, amountA);
+        TransferHelper.safeTransferFrom(tokenB, msg.sender, pair, amountB);
+        liquidity = IUniswapV2Pair(pair).mint(to);
+
+        _approveIfNeeded(pair, address(MCV2));
         MCV2.deposit(MCV2PID, liquidity, to);
     }
 
@@ -80,11 +46,17 @@ contract LiquidityBrewer is SpookyApprovals, ReentrancyGuard, SelfPermit, Multic
         address to,
         uint deadline,
         uint MCV2PID
-    ) external payable nonReentrant {
-        IERC20(token).transferFrom(msg.sender, address(this), amountTokenDesired);
-        _approveIfNeeded(token, address(Router));
-        (,, uint liquidity) = Router.addLiquidityETH{value: msg.value}(token, amountTokenDesired, amountTokenMin, amountETHMin, address(this), deadline);
-        _approveIfNeeded(address(MCV2.lpToken(MCV2PID)), address(MCV2));
+    ) external payable ensure(deadline) returns (uint amountToken, uint amountETH, uint liquidity) {
+        (amountToken, amountETH) = _addLiquidity(token, WETH, amountTokenDesired, msg.value, amountTokenMin, amountETHMin);
+        address pair = UniswapV2Library.pairFor(factory, token, WETH);
+        TransferHelper.safeTransferFrom(token, msg.sender, pair, amountToken);
+        IWETH(WETH).deposit{value: amountETH}();
+        assert(IWETH(WETH).transfer(pair, amountETH));
+        liquidity = IUniswapV2Pair(pair).mint(to);
+        // refund dust eth, if any
+        if (msg.value > amountETH) TransferHelper.safeTransferETH(msg.sender, msg.value - amountETH);
+
+        _approveIfNeeded(pair, address(MCV2));
         MCV2.deposit(MCV2PID, liquidity, to);
     }
 
@@ -95,28 +67,6 @@ contract LiquidityBrewer is SpookyApprovals, ReentrancyGuard, SelfPermit, Multic
         _approveIfNeeded(token, address(MCV2));
         MCV2.deposit(pid, amount, to);
     }
-}
-
-interface IRouter {
-    function addLiquidity(
-        address tokenA,
-        address tokenB,
-        uint amountADesired,
-        uint amountBDesired,
-        uint amountAMin,
-        uint amountBMin,
-        address to,
-        uint deadline
-    ) external returns (uint amountA, uint amountB, uint liquidity);
-
-    function addLiquidityETH(
-        address token,
-        uint amountTokenDesired,
-        uint amountTokenMin,
-        uint amountETHMin,
-        address to,
-        uint deadline
-    ) external payable returns (uint amountToken, uint amountETH, uint liquidity);
 }
 
 interface IMCV2 {

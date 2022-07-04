@@ -6,6 +6,7 @@ import "./utils/SpookyApprovals.sol";
 import "./utils/SelfPermit.sol";
 import "./utils/Multicall.sol";
 import "./router/UniswapV2Router02.sol";
+import "hardhat/console.sol";
 
 /// @notice boooo! spooooky!! nyahaha! ₍⸍⸌̣ʷ̣̫⸍̣⸌₎
 contract LiquidityBrewer is SpookyApprovals, UniswapV2Router02, SelfPermit, Multicall {
@@ -31,7 +32,7 @@ contract LiquidityBrewer is SpookyApprovals, UniswapV2Router02, SelfPermit, Mult
         address pair = UniswapV2Library.pairFor(factory, tokenA, tokenB);
         TransferHelper.safeTransferFrom(tokenA, msg.sender, pair, amountA);
         TransferHelper.safeTransferFrom(tokenB, msg.sender, pair, amountB);
-        liquidity = IUniswapV2Pair(pair).mint(to);
+        liquidity = IUniswapV2Pair(pair).mint(address(this));
 
         _approveIfNeeded(pair, address(MCV2));
         MCV2.deposit(MCV2PID, liquidity, to);
@@ -52,7 +53,7 @@ contract LiquidityBrewer is SpookyApprovals, UniswapV2Router02, SelfPermit, Mult
         TransferHelper.safeTransferFrom(token, msg.sender, pair, amountToken);
         IWETH(WETH).deposit{value: amountETH}();
         assert(IWETH(WETH).transfer(pair, amountETH));
-        liquidity = IUniswapV2Pair(pair).mint(to);
+        liquidity = IUniswapV2Pair(pair).mint(address(this));
         // refund dust eth, if any
         if (msg.value > amountETH) TransferHelper.safeTransferETH(msg.sender, msg.value - amountETH);
 

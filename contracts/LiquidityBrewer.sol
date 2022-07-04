@@ -60,9 +60,8 @@ contract LiquidityBrewer is SpookyApprovals, UniswapV2Router02, SelfPermit, Mult
     }
 
     //deposit to masterchef v2
-    function deposit(address token, uint pid, uint amount, address to) external {
-        if(token == address(0))
-            token = address(MCV2.lpToken(pid));
+    function deposit(uint pid, uint amount, address to) external {
+        address token = address(MCV2.lpToken(pid));
         IERC20(token).transferFrom(msg.sender, address(this), amount);
         _approveIfNeeded(token, address(MCV2));
         MCV2.deposit(pid, amount, to);

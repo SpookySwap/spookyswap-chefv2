@@ -6,11 +6,11 @@ interface ierc20 {
 }
 
 abstract contract SpookyApprovals {
-    mapping(address => mapping(address => bool)) public isApproved;
+    mapping(address => mapping(address => bool)) isApproved;
 
     function _approveIfNeeded(address _token, address _spender) internal {
         if(!isApproved[_token][_spender]) {
-            ierc20(_token).approve(address(_spender), 2**256 - 1);
+            ierc20(_token).approve(_spender, 2**256 - 1);
             isApproved[_token][_spender] = true;
         }
     }

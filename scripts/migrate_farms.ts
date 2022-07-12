@@ -28,10 +28,10 @@ async function main() {
 
         let newAlloc = info.allocPoint
         if(i == 64 || i == 17 || i == 22) {
-            await MC.set(i, 0)
+            //await MC.set(i, 0)
             continue
         }
-        if(i == 63 || i == 49)
+        /*if(i == 63 || i == 49)
             newAlloc = 30
         if(i == 70)
             newAlloc = 20
@@ -40,22 +40,22 @@ async function main() {
         if(i == 37)
             newAlloc = 40
         if(i == 42)
-            newAlloc = 100
+            newAlloc = 100*/
 
 
         if(i == 0) {
-            await MCV2.set(0, newAlloc, "0x0000000000000000000000000000000000000000", false, true)
+            //await MCV2.set(0, newAlloc, "0x0000000000000000000000000000000000000000", false, true)
         } else {
-            await MCV2.add(newAlloc, info.lpToken, "0x0000000000000000000000000000000000000000", true)
+            await MCV2.add(0, info.lpToken, "0x0000000000000000000000000000000000000000", true)
         }
 
-        await MC.set(i, 0)
+        //await MC.set(i, 0)
         if(i != 0) console.log("MasterChefV1 pool with PID " + i + " is now on MasterChefV2 with PID " + newPid++ + " and allocPoint " + info.allocPoint)
         else console.log("MasterChefV1 pool with PID " + 0 + " is now on MasterChefV2 with PID " + 0 + " and allocPoint " + info.allocPoint)
     }
 
-    await MCV2.set(3, 0, "0x0000000000000000000000000000000000000000", false, true) //sd-usdc
-    await MCV2.set(4, 100, "0x0000000000000000000000000000000000000000", false, true) //FTM-sFTMx
+    //await MCV2.set(3, 0, "0x0000000000000000000000000000000000000000", false, true) //sd-usdc
+    //await MCV2.set(4, 100, "0x0000000000000000000000000000000000000000", false, true) //FTM-sFTMx
 
     /**/
 

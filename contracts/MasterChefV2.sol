@@ -349,6 +349,11 @@ contract MasterChefV2 is Ownable {
         user.amount = 0;
         user.rewardDebt = 0;
 
+        IRewarder _rewarder = rewarder[pid];
+        if (address(_rewarder) != address(0)) {
+            _rewarder.onReward(pid, msg.sender, to, 0, amount);
+        }
+
         // Note: transfer can fail or succeed if `amount` is zero.
         lpToken[pid].safeTransfer(to, amount);
         emit EmergencyWithdraw(msg.sender, pid, amount, to);

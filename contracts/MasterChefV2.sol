@@ -417,6 +417,15 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
             _set(_pid[i], _allocPoint[i], _rewarders[i], overwrite[i], false);
     }
 
+    function setBatchSlim(uint[] memory _pid, uint64[] memory _allocPoint, bool update) external onlyAuth {
+        if(update)
+            massUpdateAllPools();
+
+        uint len = _pid.length;
+        for(uint i = 0; i < len; i++)
+            _set(_pid[i], _allocPoint[i], address(0), false, false);
+    }
+
 
 
     function _set(uint _pid, uint64 _allocPoint, IRewarder _rewarder, bool overwrite, bool update) internal validatePid(_pid) {

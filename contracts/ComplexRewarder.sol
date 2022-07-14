@@ -55,6 +55,8 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
     event LogRewardPerSecond(uint rewardPerSecond);
     event AdminTokenRecovery(address _tokenAddress, uint _amt, address _adr);
     event LogInit();
+    event ChildCreated(address indexed child, address indexed token);
+    event ChildRemoved(address indexed child);
 
     modifier onlyMCV2 {
         require(
@@ -74,15 +76,20 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
     }
 
     function createChild(IERC20Ext _rewardToken, uint _rewardPerSecond) external onlyOwner {
-        IRewarder child = new ChildRewarder(_rewardToken, _rewardPerSecond, MASTERCHEF_V2, address(this));
+        ChildRewarder child = new ChildRewarder();
+        child.init(_rewardToken, _rewardPerSecond, MASTERCHEF_V2, address(this));
         Ownable(address(child)).transferOwnership(msg.sender);
         childrenRewarders.push(child);
+        emit ChildCreated(address(child), address(_rewardToken));
     }
 
     function popChildren(uint amount) external onlyOwner {
+        uint len = childrenRewarders.length - 1;
         for(uint i = 0; i < amount;) {
+            emit ChildRemoved(address(childrenRewarders[len]));
             childrenRewarders.pop();
             unchecked {++i;}
+            unchecked {--len;}
         }
     }
 

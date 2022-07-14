@@ -156,81 +156,81 @@ describe.only("FetchHelper", function() {
       ["dummyRewardToken3", this.ERC20Mock, ["dummyReward3", "dummyReward3", getBigNumber(10)]],
     ])
 
-    console.log('here2')
+    // console.log('here2')
 
-    // Create complex rewarder, add 2 child rewarders
-    await deploy(this, [
-      ["complexRewarder", this.ComplexRewarder, [this.dummyRewardToken1.address, getBigNumber(3, 16), addresses.mcv2]]
-    ])
-    await this.complexRewarder.createChild(this.dummyRewardToken2.address, getBigNumber(2, 16))
-    await this.complexRewarder.createChild(this.dummyRewardToken3.address, getBigNumber(1, 16))
+    // // Create complex rewarder, add 2 child rewarders
+    // await deploy(this, [
+    //   ["complexRewarder", this.ComplexRewarder, [this.dummyRewardToken1.address, getBigNumber(3, 16), addresses.mcv2]]
+    // ])
+    // await this.complexRewarder.createChild(this.dummyRewardToken2.address, getBigNumber(2, 16))
+    // await this.complexRewarder.createChild(this.dummyRewardToken3.address, getBigNumber(1, 16))
 
-    // Send Tokens to complex + child rewarders
-    await this.dummyRewardToken1.transfer(this.complexRewarder.address, getBigNumber(10))
-    const [child1Address, child2Address] = await this.complexRewarder.getChildrenRewarders()
-    this.childRewarder1 = await ethers.getContractAt("ChildRewarder", child1Address)
-    this.childRewarder2 = await ethers.getContractAt("ChildRewarder", child2Address)
-    await this.dummyRewardToken2.transfer(this.childRewarder1.address, getBigNumber(10))
-    await this.dummyRewardToken3.transfer(this.childRewarder2.address, getBigNumber(10))
+    // // Send Tokens to complex + child rewarders
+    // await this.dummyRewardToken1.transfer(this.complexRewarder.address, getBigNumber(10))
+    // const [child1Address, child2Address] = await this.complexRewarder.getChildrenRewarders()
+    // this.childRewarder1 = await ethers.getContractAt("ChildRewarder", child1Address)
+    // this.childRewarder2 = await ethers.getContractAt("ChildRewarder", child2Address)
+    // await this.dummyRewardToken2.transfer(this.childRewarder1.address, getBigNumber(10))
+    // await this.dummyRewardToken3.transfer(this.childRewarder2.address, getBigNumber(10))
 
-    // Get constants
-    this.chefv2 = await ethers.getContractAt("MasterChefV2", addresses.mcv2)
-    await network.provider.request({
-      method: "hardhat_impersonateAccount",
-      params: [addresses.mcv2Owner],
-    });
-    const chefOwner = await ethers.getSigner(addresses.mcv2Owner)
-    const dummyLpPid = await this.chefv2.poolInfoAmount()
+    // // Get constants
+    // this.chefv2 = await ethers.getContractAt("MasterChefV2", addresses.mcv2)
+    // await network.provider.request({
+    //   method: "hardhat_impersonateAccount",
+    //   params: [addresses.mcv2Owner],
+    // });
+    // const chefOwner = await ethers.getSigner(addresses.mcv2Owner)
+    // const dummyLpPid = await this.chefv2.poolInfoAmount()
 
-    console.log('here3')
+    // console.log('here3')
 
-    // Add Dummy LP token pool
-    console.log({
-      chef: this.chefv2,
-      chefOwner,
-      dummyLPAdd: this.dummyLP.address,
-      compl: this.complexRewarder.address,
-    })
-    await this.chefv2.connect(chefOwner).add(100, this.dummyLP.address, this.complexRewarder.address, true)
+    // // Add Dummy LP token pool
+    // console.log({
+    //   chef: this.chefv2,
+    //   chefOwner,
+    //   dummyLPAdd: this.dummyLP.address,
+    //   compl: this.complexRewarder.address,
+    // })
+    // await this.chefv2.connect(chefOwner).add(100, this.dummyLP.address, this.complexRewarder.address, true)
 
-    console.log('here3.1.0')
-    await this.complexRewarder.add(100, dummyLpPid, true)
-    console.log('here3.1.1')
-    await this.childRewarder1.add(100, dummyLpPid, true)
-    console.log('here3.1.2')
-    await this.childRewarder2.add(100, dummyLpPid, true)
+    // console.log('here3.1.0')
+    // await this.complexRewarder.add(100, dummyLpPid, true)
+    // console.log('here3.1.1')
+    // await this.childRewarder1.add(100, dummyLpPid, true)
+    // console.log('here3.1.2')
+    // await this.childRewarder2.add(100, dummyLpPid, true)
     
-    console.log('here3.1.3')
+    // console.log('here3.1.3')
     
     
-    // Stake Alice in Dummy LP pool
-    await this.dummyLP.approve(this.chefv2.address, getBigNumber(10))
-    await this.chefv2["deposit(uint256,uint256)"](dummyLpPid, getBigNumber(5))
-    console.log('here3.2')
+    // // Stake Alice in Dummy LP pool
+    // await this.dummyLP.approve(this.chefv2.address, getBigNumber(10))
+    // await this.chefv2["deposit(uint256,uint256)"](dummyLpPid, getBigNumber(5))
+    // console.log('here3.2')
 
-    // Mine 50 seconds
-    const block = await ethers.provider.getBlock('latest')
-    const timestamp = block.timestamp
-    await network.provider.send('evm_setNextBlockTimestamp', [timestamp + 50])
-    await network.provider.send('evm_mine')
+    // // Mine 50 seconds
+    // const block = await ethers.provider.getBlock('latest')
+    // const timestamp = block.timestamp
+    // await network.provider.send('evm_setNextBlockTimestamp', [timestamp + 50])
+    // await network.provider.send('evm_mine')
 
-    console.log('here4')
+    // console.log('here4')
 
-    // Add Dummy LP pool to farms list
-    this.complexRewardedFarm = {
-      pid: dummyLpPid,
-      version: 2,
-      lpSymbol: 'DUMMY-LP',
-      lp: this.dummyLP.address,
-      token: '',
-      quoteToken: '',
-      rewardTokens: [this.dummyRewardToken1.address, this.dummyRewardToken2.address, this.dummyRewardToken3.address],
-      stakedUser: this.alice.address,
-      unstakedUser: '0x3a7679E3662bC7c2EB2B1E71FA221dA430c6f64B',
-    } as FarmConfig
+    // // Add Dummy LP pool to farms list
+    // this.complexRewardedFarm = {
+    //   pid: dummyLpPid,
+    //   version: 2,
+    //   lpSymbol: 'DUMMY-LP',
+    //   lp: this.dummyLP.address,
+    //   token: '',
+    //   quoteToken: '',
+    //   rewardTokens: [this.dummyRewardToken1.address, this.dummyRewardToken2.address, this.dummyRewardToken3.address],
+    //   stakedUser: this.alice.address,
+    //   unstakedUser: '0x3a7679E3662bC7c2EB2B1E71FA221dA430c6f64B',
+    // } as FarmConfig
 
 
-    console.log('here5')
+    // console.log('here5')
   })
 
   describe("Fetching Lp", async function() {

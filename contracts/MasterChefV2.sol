@@ -423,7 +423,7 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
 
         uint len = _pid.length;
         for(uint i = 0; i < len; i++)
-            _set(_pid[i], _allocPoint[i], address(0), false, false);
+            _set(_pid[i], _allocPoint[i], IRewarder(address(0)), false, false);
     }
 
 

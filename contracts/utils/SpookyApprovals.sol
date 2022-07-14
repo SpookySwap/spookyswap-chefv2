@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.13;
+pragma solidity ^0.8;
 
 interface ierc20 {
     function approve(address spender, uint256 amount) external returns (bool);

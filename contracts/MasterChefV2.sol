@@ -7,6 +7,8 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import "./interfaces/IRewarder.sol";
 import "./interfaces/IMasterChef.sol";
 import "./utils/SpookyAuth.sol";
+import "./utils/Multicall.sol";
+import "./utils/SelfPermit.sol";
 
 
 /// @notice The (older) MasterChef contract gives out a constant number of BOO tokens per second.
@@ -14,7 +16,7 @@ import "./utils/SpookyAuth.sol";
 /// The idea for this MasterChef V2 (MCV2) contract is therefore to be the owner of a dummy token
 /// that is deposited into the MasterChef V1 (MCV1) contract.
 /// The allocation point for this pool on MCV1 is the total allocation point for all pools that receive double incentives.
-contract MasterChefV2 is SpookyAuth {
+contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
     using SafeERC20 for IERC20;
 
     /// @notice Info of each MCV2 user.
@@ -414,6 +416,8 @@ contract MasterChefV2 is SpookyAuth {
         for(uint i = 0; i < len; i++)
             _set(_pid[i], _allocPoint[i], _rewarders[i], overwrite[i], false);
     }
+
+
 
     function _set(uint _pid, uint64 _allocPoint, IRewarder _rewarder, bool overwrite, bool update) internal validatePid(_pid) {
         if (update) {

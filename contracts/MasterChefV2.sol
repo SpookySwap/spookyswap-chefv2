@@ -4,9 +4,9 @@ pragma solidity 0.8.10;
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import '@openzeppelin/contracts/access/Ownable.sol';
 import "./interfaces/IRewarder.sol";
 import "./interfaces/IMasterChef.sol";
+import "./utils/SpookyAuth.sol";
 
 
 /// @notice The (older) MasterChef contract gives out a constant number of BOO tokens per second.
@@ -14,7 +14,7 @@ import "./interfaces/IMasterChef.sol";
 /// The idea for this MasterChef V2 (MCV2) contract is therefore to be the owner of a dummy token
 /// that is deposited into the MasterChef V1 (MCV1) contract.
 /// The allocation point for this pool on MCV1 is the total allocation point for all pools that receive double incentives.
-contract MasterChefV2 is Ownable {
+contract MasterChefV2 is SpookyAuth {
     using SafeERC20 for IERC20;
 
     /// @notice Info of each MCV2 user.
@@ -366,7 +366,7 @@ contract MasterChefV2 is Ownable {
     /// @param allocPoint AP of the new pool.
     /// @param _lpToken Address of the LP ERC-20 token.
     /// @param _rewarder Addresses of the rewarder delegate(s).
-    function add(uint64 allocPoint, IERC20 _lpToken, IRewarder _rewarder, bool update) external onlyOwner {
+    function add(uint64 allocPoint, IERC20 _lpToken, IRewarder _rewarder, bool update) external onlyAuth {
         checkForDuplicate(_lpToken);
         
         if (update) {
@@ -395,7 +395,7 @@ contract MasterChefV2 is Ownable {
     /// @param _allocPoint New AP of the pool.
     /// @param _rewarder Addresses of the rewarder delegates.
     /// @param overwrite True if _rewarders should be `set`. Otherwise `_rewarders` is ignored.
-    function set(uint _pid, uint64 _allocPoint, IRewarder _rewarder, bool overwrite, bool update) external onlyOwner {
+    function set(uint _pid, uint64 _allocPoint, IRewarder _rewarder, bool overwrite, bool update) external onlyAuth {
         _set(_pid, _allocPoint, _rewarder, overwrite, update);
     }
 
@@ -404,7 +404,7 @@ contract MasterChefV2 is Ownable {
     /// @param _allocPoint New AP of the pool.
     /// @param _rewarders Addresses of the rewarder delegates.
     /// @param overwrite True if _rewarders should be `set`. Otherwise `_rewarders` is ignored.
-    function setBatch(uint[] memory _pid, uint64[] memory _allocPoint, IRewarder[] memory _rewarders, bool[] memory overwrite, bool update) external onlyOwner {
+    function setBatch(uint[] memory _pid, uint64[] memory _allocPoint, IRewarder[] memory _rewarders, bool[] memory overwrite, bool update) external onlyAuth {
         require(_pid.length == _allocPoint.length && _allocPoint.length == _rewarders.length && _rewarders.length == overwrite.length, "MCV2: all arrays need to be the same length");
 
         if(update)
@@ -427,7 +427,7 @@ contract MasterChefV2 is Ownable {
         emit LogSetPool(_pid, _allocPoint, overwrite ? _rewarder : rewarder[_pid], overwrite, update);
     }
 
-    function setV1HarvestQueryTime(uint256 newTime, bool inDays) external onlyOwner {
+    function setV1HarvestQueryTime(uint256 newTime, bool inDays) external onlyAuth {
         V1_HARVEST_QUERY_TIME = newTime * (inDays ? 1 days : 1);
     }
 

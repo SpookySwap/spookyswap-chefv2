@@ -84,7 +84,7 @@ const accounts = {
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
   mocha: {
-    timeout: 20000,
+    timeout: 40000,
   },
   etherscan: {
     apiKey: process.env.FTMSCAN_API_KEY
@@ -93,8 +93,8 @@ const config: HardhatUserConfig = {
     hardhat: {
       accounts,
       forking: {
-        url: "https://rpc.ftm.tools",
-        blockNumber: 40071098,
+        url: "https://rpc.ankr.com/fantom/",
+        blockNumber: 42757400,
       },
       chainId: 250,
     },
@@ -140,6 +140,6 @@ const config: HardhatUserConfig = {
         },
       },
     ],
-  },
+  }
 }
 export default config

@@ -156,6 +156,8 @@ describe.only("FetchHelper", function() {
       ["dummyRewardToken3", this.ERC20Mock, ["dummyReward3", "dummyReward3", getBigNumber(10)]],
     ])
 
+    console.log('here2')
+
     // Create complex rewarder, add 2 child rewarders
     await deploy(this, [
       ["complexRewarder", this.ComplexRewarder, [this.dummyRewardToken1.address, getBigNumber(3, 16), addresses.mcv2]]
@@ -180,21 +182,39 @@ describe.only("FetchHelper", function() {
     const chefOwner = await ethers.getSigner(addresses.mcv2Owner)
     const dummyLpPid = await this.chefv2.poolInfoAmount()
 
-    // Add Dummy LP token pool
-    await this.chefv2.connect(chefOwner).add(100, this.dummyLP.address, this.complexRewarder.address, true)
-    await this.complexRewarder.add(100, dummyLpPid, true)
-    await this.childRewarder1.add(100, dummyLpPid, true)
-    await this.childRewarder2.add(100, dummyLpPid, true)
+    console.log('here3')
 
+    // Add Dummy LP token pool
+    console.log({
+      chef: this.chefv2,
+      chefOwner,
+      dummyLPAdd: this.dummyLP.address,
+      compl: this.complexRewarder.address,
+    })
+    await this.chefv2.connect(chefOwner).add(100, this.dummyLP.address, this.complexRewarder.address, true)
+
+    console.log('here3.1.0')
+    await this.complexRewarder.add(100, dummyLpPid, true)
+    console.log('here3.1.1')
+    await this.childRewarder1.add(100, dummyLpPid, true)
+    console.log('here3.1.2')
+    await this.childRewarder2.add(100, dummyLpPid, true)
+    
+    console.log('here3.1.3')
+    
+    
     // Stake Alice in Dummy LP pool
     await this.dummyLP.approve(this.chefv2.address, getBigNumber(10))
     await this.chefv2["deposit(uint256,uint256)"](dummyLpPid, getBigNumber(5))
+    console.log('here3.2')
 
     // Mine 50 seconds
     const block = await ethers.provider.getBlock('latest')
     const timestamp = block.timestamp
     await network.provider.send('evm_setNextBlockTimestamp', [timestamp + 50])
     await network.provider.send('evm_mine')
+
+    console.log('here4')
 
     // Add Dummy LP pool to farms list
     this.complexRewardedFarm = {
@@ -208,6 +228,9 @@ describe.only("FetchHelper", function() {
       stakedUser: this.alice.address,
       unstakedUser: '0x3a7679E3662bC7c2EB2B1E71FA221dA430c6f64B',
     } as FarmConfig
+
+
+    console.log('here5')
   })
 
   describe("Fetching Lp", async function() {

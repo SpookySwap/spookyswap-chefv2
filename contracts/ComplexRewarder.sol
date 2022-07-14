@@ -44,7 +44,7 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
     uint public rewardPerSecond;
     uint public immutable ACC_TOKEN_PRECISION;
 
-    address private immutable MASTERCHEF_V2;
+    address public immutable MASTERCHEF_V2;
 
     IRewarder[] public childrenRewarders;
 

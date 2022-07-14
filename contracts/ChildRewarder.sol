@@ -47,14 +47,14 @@ contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
     /// @notice Info of each user that stakes LP tokens.
     mapping (uint => mapping (address => UserInfo)) public userInfo;
     /// @dev Total allocation points. Must be the sum of all allocation points in all pools.
-    uint totalAllocPoint;
+    uint public totalAllocPoint;
 
     uint public rewardPerSecond;
     uint public ACC_TOKEN_PRECISION;
 
-    address private MASTERCHEF_V2;
+    address public MASTERCHEF_V2;
 
-    address private PARENT;
+    address public PARENT;
 
     bool notinit = true;
 

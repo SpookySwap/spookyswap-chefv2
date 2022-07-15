@@ -353,7 +353,7 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
 
         IRewarder _rewarder = rewarder[pid];
         if (address(_rewarder) != address(0)) {
-            _rewarder.onReward(pid, msg.sender, to, 0, amount);
+            _rewarder.onReward(pid, msg.sender, to, 0, 0);
         }
 
         // Note: transfer can fail or succeed if `amount` is zero.

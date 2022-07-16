@@ -3,13 +3,10 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IRewarder.sol";
 import "./interfaces/IMasterChef.sol";
 
 contract SpookyFetchHelper {
-    using SafeERC20 for IERC20;
-
     uint256 secPerYear = 31536000;
 
     address public masterchef = 0x2b2929E785374c651a81A63878Ab22742656DcDd;
@@ -21,6 +18,7 @@ contract SpookyFetchHelper {
 
     struct RewardTokenData {
         address rewardToken;
+        uint256 allocPoint;
         uint256 rewardPerYear;
     }
 
@@ -87,7 +85,7 @@ contract SpookyFetchHelper {
         view
         returns (uint256 totalAlloc)
     {
-        totalAlloc = _fetchMCV1PoolAlloc(dummyPids[chef]);
+        totalAlloc = IMasterChefV2(chef).totalAllocPoint();
     }
 
     function _fetchIRewarderPoolAlloc(IRewarder rewarder, uint256 pid)
@@ -103,12 +101,7 @@ contract SpookyFetchHelper {
         view
         returns (uint256 totalAlloc)
     {
-        IRewarderExt rewExt = IRewarderExt(address(rewarder));
-        uint256 alloc;
-        for (uint256 i = 0; i < rewExt.poolLength(); i++) {
-            (,,alloc) = rewExt.poolInfo(rewExt.poolIds(i));
-            totalAlloc += alloc;
-        }
+        totalAlloc = IRewarderExt(address(rewarder)).totalAllocPoint();
     }
 
     function fetchLpData(
@@ -177,11 +170,15 @@ contract SpookyFetchHelper {
 
         // MCV1 pool, earns only BOO
         if (version == 1) {
+            uint256 totalAlloc = _fetchMCV1TotalAlloc();
             rewardTokens[0] = RewardTokenData({
                 rewardToken: address(IMasterChef(masterchef).boo()),
-                rewardPerYear: (secPerYear *
-                    IMasterChef(masterchef).booPerSecond() *
-                    _fetchMCV1PoolAlloc(pid)) / _fetchMCV1TotalAlloc()
+                allocPoint: _fetchMCV1PoolAlloc(pid),
+                rewardPerYear: totalAlloc == 0
+                    ? 0
+                    : (secPerYear *
+                        IMasterChef(masterchef).booPerSecond() *
+                        _fetchMCV1PoolAlloc(pid)) / totalAlloc
             });
         }
 
@@ -190,6 +187,7 @@ contract SpookyFetchHelper {
             uint256 totalAlloc = _fetchMCV2TotalAlloc(_chef(version));
             rewardTokens[0] = RewardTokenData({
                 rewardToken: address(IMasterChefV2(_chef(version)).BOO()),
+                allocPoint: _fetchMCV2PoolAlloc(_chef(version), pid),
                 rewardPerYear: totalAlloc == 0
                     ? 0
                     : (secPerYear *
@@ -203,6 +201,7 @@ contract SpookyFetchHelper {
             uint256 totalAlloc = _fetchIRewarderTotalAlloc(complexRewarder);
             rewardTokens[1] = RewardTokenData({
                 rewardToken: address(complexRewarder.rewardToken()),
+                allocPoint: _fetchIRewarderPoolAlloc(complexRewarder, pid),
                 rewardPerYear: totalAlloc == 0
                     ? 0
                     : (secPerYear *
@@ -217,6 +216,7 @@ contract SpookyFetchHelper {
             uint256 totalAlloc = _fetchIRewarderTotalAlloc(childRewarders[i]);
             rewardTokens[i + 2] = RewardTokenData({
                 rewardToken: address(childRewarders[i].rewardToken()),
+                allocPoint: _fetchIRewarderPoolAlloc(childRewarders[i], pid),
                 rewardPerYear: totalAlloc == 0
                     ? 0
                     : (secPerYear *

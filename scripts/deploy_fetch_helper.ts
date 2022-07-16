@@ -2,7 +2,7 @@ import { ethers, run } from "hardhat"
 
 async function main() {
     const FetchHelper = await ethers.getContractFactory("SpookyFetchHelper");
-    const fetchHelper = await FetchHelper.deploy();
+    const fetchHelper = await FetchHelper.deploy({ gasLimit: 7000000 });
     await fetchHelper.deployed()
   
     console.log("fetch helper deployed to:", fetchHelper.address);

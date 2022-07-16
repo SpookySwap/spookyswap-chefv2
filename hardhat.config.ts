@@ -103,10 +103,10 @@ const config: HardhatUserConfig = {
       gasPrice: 20000000000,
     },
     fantom: {
-      url: "https://rpc.ftm.tools",
+      url: "https://rpc.ankr.com/fantom/",
       accounts,
       chainId: 250,
-      gasPrice: 2000000000,
+      // gasPrice: 2000000000,
     },
     "fantom-testnet": {
       url: "https://rpc.testnet.fantom.network",

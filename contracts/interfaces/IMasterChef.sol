@@ -59,6 +59,8 @@ interface IMasterChefV2 {
 
     function booPerSecond() external view returns (uint256);
 
+    function totalAllocPoint() external view returns (uint256);
+
     function BOO() external view returns (IERC20);
 
     function pendingBOO(uint256 pid, address user)

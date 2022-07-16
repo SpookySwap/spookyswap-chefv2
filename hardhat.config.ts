@@ -94,7 +94,7 @@ const config: HardhatUserConfig = {
       accounts,
       forking: {
         url: "https://rpc.ankr.com/fantom/",
-        blockNumber: 42757400,
+        blockNumber: 42815904,
       },
       chainId: 250,
     },

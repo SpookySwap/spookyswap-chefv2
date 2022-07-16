@@ -14,7 +14,7 @@ contract SpookyFetchHelper {
 
     address public masterchef = 0x2b2929E785374c651a81A63878Ab22742656DcDd;
     address public masterchefv2 = 0x18b4f774fdC7BF685daeeF66c2990b1dDd9ea6aD;
-    address public masterchefv3 = 0x18b4f774fdC7BF685daeeF66c2990b1dDd9ea6aD; // TODO: Update to real address
+    address public masterchefv3 = 0xDF5e820568BAEE4817e9f6d2c10385B61e45Be6B;
     address[3] public chefs = [masterchef, masterchefv2, masterchefv3];
 
     mapping(address => uint256) public dummyPids;
@@ -31,7 +31,11 @@ contract SpookyFetchHelper {
 
     constructor() {
         dummyPids[masterchefv2] = 73;
-        // dummyPids[masterchefv3] = 81;
+        dummyPids[masterchefv3] = 82;
+    }
+
+    function _chef(uint256 version) internal view returns (address) {
+        return chefs[version - 1];
     }
 
     function _tryTokenDecimals(IERC20 token) internal view returns (uint8) {
@@ -126,7 +130,7 @@ contract SpookyFetchHelper {
     {
         tokenBalanceInLp = token.balanceOf(address(lp));
         quoteBalanceInLp = quote.balanceOf(address(lp));
-        lpBalanceInChef = lp.balanceOf(chefs[version]);
+        lpBalanceInChef = lp.balanceOf(_chef(version));
         lpSupply = lp.totalSupply();
         tokenDecimals = _tryTokenDecimals(token);
         quoteDecimals = _tryTokenDecimals(quote);
@@ -145,7 +149,7 @@ contract SpookyFetchHelper {
             return (1, IRewarder(address(0)), new IRewarder[](0));
         }
         if (version == 2 || version == 3) {
-            IRewarder rewarder = IMasterChefV2(chefs[version]).rewarder(pid);
+            IRewarder rewarder = IMasterChefV2(_chef(version)).rewarder(pid);
             IRewarder[] memory childRewarders = _tryGetChildRewarders(rewarder);
             return (
                 1 +
@@ -183,14 +187,14 @@ contract SpookyFetchHelper {
 
         // MCV2 pool, earns BOO
         if (version == 2 || version == 3) {
-            uint256 totalAlloc = _fetchMCV2TotalAlloc(chefs[version]);
+            uint256 totalAlloc = _fetchMCV2TotalAlloc(_chef(version));
             rewardTokens[0] = RewardTokenData({
-                rewardToken: address(IMasterChefV2(chefs[version]).BOO()),
+                rewardToken: address(IMasterChefV2(_chef(version)).BOO()),
                 rewardPerYear: totalAlloc == 0
                     ? 0
                     : (secPerYear *
-                        IMasterChefV2(chefs[version]).booPerSecond() *
-                        _fetchMCV2PoolAlloc(chefs[version], pid)) / totalAlloc
+                        IMasterChefV2(_chef(version)).booPerSecond() *
+                        _fetchMCV2PoolAlloc(_chef(version), pid)) / totalAlloc
             });
         }
 
@@ -228,7 +232,7 @@ contract SpookyFetchHelper {
         IERC20 lp,
         uint8 version
     ) public view returns (uint256 allowance, uint256 balance) {
-        allowance = lp.allowance(user, chefs[version]);
+        allowance = lp.allowance(user, _chef(version));
         balance = lp.balanceOf(user);
     }
 
@@ -243,7 +247,7 @@ contract SpookyFetchHelper {
     {
         if (version == 1) return (new IERC20[](0), new uint256[](0));
 
-        IRewarder rewarder = IMasterChefV2(chefs[version]).rewarder(pid);
+        IRewarder rewarder = IMasterChefV2(_chef(version)).rewarder(pid);
         if (address(rewarder) == address(0))
             return (new IERC20[](0), new uint256[](0));
 
@@ -263,7 +267,7 @@ contract SpookyFetchHelper {
         if (version == 1)
             staked = IMasterChef(masterchef).userInfo(pid, user).amount;
         if (version == 2 || version == 3)
-            (staked, ) = IMasterChefV2(chefs[version]).userInfo(pid, user);
+            (staked, ) = IMasterChefV2(_chef(version)).userInfo(pid, user);
 
         // If pool is v2 and has rewarder, get reward tokens and earnings
         (
@@ -279,7 +283,7 @@ contract SpookyFetchHelper {
         if (version == 1)
             booEarnings = IMasterChef(masterchef).pendingBOO(pid, user);
         if (version == 2 || version == 3)
-            booEarnings = IMasterChefV2(chefs[version]).pendingBOO(pid, user);
+            booEarnings = IMasterChefV2(_chef(version)).pendingBOO(pid, user);
         earnings[0] = RewardEarningsData({
             rewardToken: address(IMasterChef(masterchef).boo()),
             earnings: booEarnings

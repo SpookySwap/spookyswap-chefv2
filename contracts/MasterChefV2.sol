@@ -311,7 +311,7 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
 
     /// @notice Batch harvest rewards from specified staked pools
     /// @param pids[] The array of pids of the pools you wish to harvest. See `poolInfo`.
-    function harvestMultiple(uint[] memory pids) external {
+    function harvestMultiple(uint[] calldata pids) external {
         uint256 length = pids.length;
         uint calc;
         uint pending;
@@ -414,7 +414,7 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
 
         poolInfoAmount = poolInfoAmount + 1;
 
-        emit LogPoolAddition(poolInfoAmount - 1, allocPoint, _lpToken, _rewarder, update);
+        emit LogPoolAddition(pid, allocPoint, _lpToken, _rewarder, update);
     }
 
     /// @notice Update the given pool's BOO allocation point and `IRewarder` contract. Can only be called by the owner.
@@ -431,7 +431,7 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
     /// @param _allocPoint New AP of the pool.
     /// @param _rewarders Addresses of the rewarder delegates.
     /// @param overwrite True if _rewarders should be `set`. Otherwise `_rewarders` is ignored.
-    function setBatch(uint[] memory _pid, uint64[] memory _allocPoint, IRewarder[] memory _rewarders, bool[] memory overwrite, bool update) external onlyAuth {
+    function setBatch(uint[] calldata _pid, uint64[] calldata _allocPoint, IRewarder[] calldata _rewarders, bool[] calldata overwrite, bool update) external onlyAuth {
         require(_pid.length == _allocPoint.length && _allocPoint.length == _rewarders.length && _rewarders.length == overwrite.length, "MCV2: all arrays need to be the same length");
 
         if(update)
@@ -442,7 +442,7 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
             _set(_pid[i], _allocPoint[i], _rewarders[i], overwrite[i], false);
     }
 
-    function setBatchSlim(uint[] memory _pid, uint64[] memory _allocPoint, bool update) external onlyAuth {
+    function setBatchSlim(uint[] calldata _pid, uint64[] calldata _allocPoint, bool update) external onlyAuth {
         if(update)
             massUpdateAllPools();
 

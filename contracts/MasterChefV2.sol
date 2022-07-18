@@ -23,7 +23,7 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
 
     /// @notice Info of each MCV2 user.
     /// `amount` LP token amount the user has provided.
-    /// `rewardDebt` The amount of BOO entitled to the user.
+    /// `rewardDebt`
     struct UserInfo {
         uint amount;
         uint rewardDebt;
@@ -53,7 +53,7 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
     /// @notice Amount of pool infos and their respective lpToken entries I.E stores last ID + 1, for above two mappings
     uint public poolInfoAmount;
     /// @notice Is an address contained in the above `lpToken` array
-    mapping(address => bool) public isLpToken;
+    mapping(IERC20 => bool) public isLpToken;
     /// @notice Address of each `IRewarder` contract in MCV2.
     mapping(uint => IRewarder) public rewarder;
 
@@ -89,7 +89,7 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
 
     /// @notice Deposits a dummy token to `MASTER_CHEF` MCV1. This is required because MCV1 holds the minting rights for BOO.
     /// Any balance of transaction sender in `dummyToken` is transferred.
-    /// The allocation point for the pool on MCV1 is the total allocation point for all pools that receive double incentives.
+    /// The allocation point for the pool on MCV1 can be the total allocation point for all pools on mcv2
     /// @param dummyToken The address of the ERC-20 token to deposit into MCV1.
     function init(IERC20 dummyToken) external {
         uint balance = dummyToken.balanceOf(msg.sender);
@@ -101,12 +101,12 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
     }
 
     /// @notice Returns the number of MCV2 pools.
-    function poolLength() public view returns (uint pools) {
+    function poolLength() external view returns (uint pools) {
         pools = poolInfoAmount;
     }
 
     function checkForDuplicate(IERC20 _lpToken) internal view {
-        require(!isLpToken[address(_lpToken)], "add: pool already exists!!!!");
+        require(!isLpToken[_lpToken], "add: pool already exists!!!!");
     }
 
     function getFarmData(uint pid) external view returns (PoolInfo memory, uint, IRewarder) {
@@ -404,7 +404,7 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
         uint64 lastRewardTime = uint64(block.timestamp);
         totalAllocPoint = totalAllocPoint + allocPoint;
         lpToken[pid] = _lpToken;
-        isLpToken[address(_lpToken)] = true;
+        isLpToken[_lpToken] = true;
         rewarder[pid] = _rewarder;
 
         PoolInfo storage poolinfo = poolInfo[pid];

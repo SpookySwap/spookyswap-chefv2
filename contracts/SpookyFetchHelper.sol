@@ -101,7 +101,17 @@ contract SpookyFetchHelper {
         view
         returns (uint256 totalAlloc)
     {
-        totalAlloc = IRewarderExt(address(rewarder)).totalAllocPoint();
+        try IRewarderExt(address(rewarder)).totalAllocPoint() returns (
+            uint256 alloc
+        ) {
+            totalAlloc = alloc;
+        } catch {
+            uint256 alloc;
+            for (uint256 i = 0; i < IRewarderExt(address(rewarder)).poolLength(); i++) {
+                (,,alloc) = IRewarderExt(address(rewarder)).poolInfo(IRewarderExt(address(rewarder)).poolIds(i));
+                totalAlloc += alloc;
+            }
+        }
     }
 
     function fetchLpData(

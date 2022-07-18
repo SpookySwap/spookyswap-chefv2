@@ -360,7 +360,7 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
     /// @notice Withdraw without caring about rewards. EMERGENCY ONLY.
     /// @param pid The index of the pool. See `poolInfo`.
     /// @param to Receiver of the LP tokens.
-    function emergencyWithdraw(uint pid, address to) external validatePid(pid) {
+    function _emergencyWithdraw(uint pid, address to) internal validatePid(pid) {
         PoolInfo storage pool = poolInfo[pid];
         UserInfo storage user = userInfo[pid][msg.sender];
         uint amount = user.amount;
@@ -376,6 +376,14 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
         lpToken[pid].safeTransfer(to, amount);
         pool.lpSupply -= amount;
         emit EmergencyWithdraw(msg.sender, pid, amount, to);
+    }
+
+    function emergencyWithdraw(uint pid, address to) external {
+        _emergencyWithdraw(pid, to);
+    }
+
+    function emergencyWithdraw(uint pid) external {
+        _emergencyWithdraw(pid, msg.sender);
     }
 
 

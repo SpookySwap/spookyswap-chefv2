@@ -36,6 +36,7 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
         uint128 accBooPerShare;
         uint64 lastRewardTime;
         uint64 allocPoint;
+        uint lpSupply;
     }
 
     /// @notice Address of MCV1 contract.
@@ -127,7 +128,7 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
         PoolInfo memory pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
         uint accBooPerShare = pool.accBooPerShare;
-        uint lpSupply = lpToken[_pid].balanceOf(address(this));
+        uint lpSupply = pool.lpSupply;
         if (block.timestamp > pool.lastRewardTime && lpSupply != 0) {
             uint multiplier = block.timestamp - pool.lastRewardTime;
             uint booReward = totalAllocPoint == 0 ? 0 : ((multiplier * booPerSecond() * pool.allocPoint) / totalAllocPoint);
@@ -167,7 +168,7 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
     function _updatePool(uint pid) internal validatePid(pid) returns (PoolInfo memory pool) {
         pool = poolInfo[pid];
         if (block.timestamp > pool.lastRewardTime) {
-            uint lpSupply = lpToken[pid].balanceOf(address(this));
+            uint lpSupply = pool.lpSupply;
             if (lpSupply > 0) {
                 uint multiplier = block.timestamp - pool.lastRewardTime;
                 uint booReward = totalAllocPoint == 0 ? 0 : ((multiplier * booPerSecond() * pool.allocPoint) / totalAllocPoint);
@@ -198,7 +199,8 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
     /// @param amount LP token amount to deposit.
     /// @param to The receiver of `amount` deposit benefit.
     function _deposit(uint pid, uint amount, address to) internal {
-        PoolInfo memory pool = _updatePool(pid);
+        _updatePool(pid);
+        PoolInfo storage pool = poolInfo[pid];
         UserInfo storage user = userInfo[pid][to];
 
         // Effects
@@ -217,7 +219,10 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
             _rewarder.onReward(pid, to, to, _pendingBoo, user.amount);
         }
 
-        lpToken[pid].safeTransferFrom(msg.sender, address(this), amount);
+        if(amount > 0) {
+            lpToken[pid].safeTransferFrom(msg.sender, address(this), amount);
+            pool.lpSupply += amount;
+        }
 
         emit Deposit(msg.sender, pid, amount, to);
         emit Harvest(msg.sender, pid, _pendingBoo);
@@ -236,7 +241,8 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
     /// @param amount LP token amount to withdraw.
     /// @param to Receiver of the LP tokens and BOO rewards.
     function _withdraw(uint pid, uint amount, address to) internal {
-        PoolInfo memory pool = _updatePool(pid);
+        _updatePool(pid);
+        PoolInfo storage pool = poolInfo[pid];
         UserInfo storage user = userInfo[pid][msg.sender];
 
         require(user.amount >= amount, "withdraw: not good");
@@ -257,7 +263,10 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
             _rewarder.onReward(pid, msg.sender, to, _pendingBoo, user.amount);
         }
 
-        lpToken[pid].safeTransfer(to, amount);
+        if(amount > 0) {
+            lpToken[pid].safeTransfer(to, amount);
+            pool.lpSupply -= amount;
+        }
 
         emit Withdraw(msg.sender, pid, amount, to);
         emit Harvest(msg.sender, pid, _pendingBoo);
@@ -348,6 +357,7 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
     /// @param pid The index of the pool. See `poolInfo`.
     /// @param to Receiver of the LP tokens.
     function emergencyWithdraw(uint pid, address to) external validatePid(pid) {
+        PoolInfo storage pool = poolInfo[pid];
         UserInfo storage user = userInfo[pid][msg.sender];
         uint amount = user.amount;
         user.amount = 0;
@@ -360,6 +370,7 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
 
         // Note: transfer can fail or succeed if `amount` is zero.
         lpToken[pid].safeTransfer(to, amount);
+        pool.lpSupply -= amount;
         emit EmergencyWithdraw(msg.sender, pid, amount, to);
     }
 

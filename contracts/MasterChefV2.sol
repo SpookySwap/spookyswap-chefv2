@@ -4,6 +4,7 @@ pragma solidity 0.8.10;
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
+import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "./interfaces/IRewarder.sol";
 import "./interfaces/IMasterChef.sol";
 import "./utils/SpookyAuth.sol";
@@ -18,6 +19,7 @@ import "./utils/SelfPermit.sol";
 /// The allocation point for this pool on MCV1 is the total allocation point for all pools that receive double incentives.
 contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
     using SafeERC20 for IERC20;
+    using SafeCast for uint;
 
     /// @notice Info of each MCV2 user.
     /// `amount` LP token amount the user has provided.
@@ -170,7 +172,7 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
                 uint multiplier = block.timestamp - pool.lastRewardTime;
                 uint booReward = totalAllocPoint == 0 ? 0 : ((multiplier * booPerSecond() * pool.allocPoint) / totalAllocPoint);
                 queryHarvestFromMasterChef();
-                pool.accBooPerShare = uint128(pool.accBooPerShare + ((booReward * ACC_BOO_PRECISION) / lpSupply));
+                pool.accBooPerShare = (pool.accBooPerShare + ((booReward * ACC_BOO_PRECISION) / lpSupply)).toUint128();
             }
             pool.lastRewardTime = uint64(block.timestamp);
             poolInfo[pid] = pool;

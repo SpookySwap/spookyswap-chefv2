@@ -159,7 +159,11 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
 
     /// @notice Calculates and returns the `amount` of BOO per second allocated to this contract
     function booPerSecond() public view returns (uint amount) {
-        amount = MASTER_CHEF.booPerSecond() * MASTER_CHEF.poolInfo(MASTER_PID).allocPoint / MASTER_CHEF.totalAllocPoint();
+        uint totalAlloc = MASTER_CHEF.totalAllocPoint();
+        if(totalAlloc > 0)
+            amount = MASTER_CHEF.booPerSecond() * MASTER_CHEF.poolInfo(MASTER_PID).allocPoint / totalAlloc;
+        else
+            amount = 0;
     }
 
     /// @notice Update reward variables of the given pool.

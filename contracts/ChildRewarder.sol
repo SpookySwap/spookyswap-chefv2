@@ -73,7 +73,7 @@ contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
 
     constructor () {} //use init()
 
-    function init(IERC20Ext _rewardToken, uint _rewardPerSecond, address _MASTERCHEF_V2, address _PARENT) external {
+    function init(IERC20Ext _rewardToken, uint _rewardPerSecond, address _MASTERCHEF_V2) external {
         require(notinit);
 
         uint decimalsRewardToken = _rewardToken.decimals();
@@ -82,7 +82,7 @@ contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
         rewardToken = _rewardToken;
         rewardPerSecond = _rewardPerSecond;
         MASTERCHEF_V2 = _MASTERCHEF_V2;
-        PARENT = _PARENT;
+        PARENT = msg.sender;
 
         notinit = false;
     }

@@ -65,11 +65,11 @@ abstract contract SelfPermit {
             selfPermitAllowed(token, nonce, expiry, v, r, s);
     }
 
-    function supportsPermits(address token) external view returns (bool permitSupport, bytes32 domainSeparator) {
+    function supportsPermits(address token) external view returns (bytes32 domainSeparator) {
         try IERC20Permit(token).DOMAIN_SEPARATOR() returns (bytes32 separator) {
-            return (true, separator);
+            return separator;
         } catch {
-            return (false, bytes32(0));
+            return bytes32(0);
         }
     }
 }

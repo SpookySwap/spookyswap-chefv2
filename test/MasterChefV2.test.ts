@@ -235,7 +235,7 @@ describe("MasterChefV2", function () {
       await this.chef2.add(10, this.rlp.address, this.rewarder.address, false)
       await this.rlp.approve(this.chef2.address, getBigNumber(10))
       await this.chef2['deposit(uint256,uint256,address)'](0, getBigNumber(1), this.bob.address)
-      await expect(this.chef2.connect(this.bob).emergencyWithdraw(0, this.bob.address))
+      await expect(this.chef2.connect(this.bob)["emergencyWithdraw(uint256,address)"](0, this.bob.address))
         .to.emit(this.chef2, "EmergencyWithdraw")
         .withArgs(this.bob.address, 0, getBigNumber(1), this.bob.address)
     })

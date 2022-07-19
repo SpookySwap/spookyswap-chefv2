@@ -185,7 +185,7 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
         PoolInfo memory pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
         uint accRewardPerShare = pool.accRewardPerShare;
-        uint lpSupply = MasterChefV2(MASTERCHEF_V2).lpToken(_pid).balanceOf(MASTERCHEF_V2);
+        (,,, uint lpSupply) = MasterChefV2(MASTERCHEF_V2).poolInfo(_pid);
 
         if (block.timestamp > pool.lastRewardTime && lpSupply != 0) {
             uint time = block.timestamp - pool.lastRewardTime;
@@ -209,7 +209,7 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
     function updatePool(uint pid) public returns (PoolInfo memory pool) {
         pool = poolInfo[pid];
         if (block.timestamp > pool.lastRewardTime) {
-            uint lpSupply = MasterChefV2(MASTERCHEF_V2).lpToken(pid).balanceOf(MASTERCHEF_V2);
+            (,,, uint lpSupply) = MasterChefV2(MASTERCHEF_V2).poolInfo(pid);
 
             if (lpSupply > 0) {
                 uint time = block.timestamp - pool.lastRewardTime;

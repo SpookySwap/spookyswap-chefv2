@@ -32,6 +32,7 @@ contract LiquidityBrewer is SpookyApprovals, UniswapV2Router02, SelfPermit, Mult
         (,, uint liquidity) = addLiquidity(tokenA, tokenB, amountADesired, amountBDesired, amountAMin, amountBMin, address(this), deadline);
 
         IMCV2 MCV2 = useMCV22 ? MCV22 : MCV21;
+        address pair = UniswapV2Library.pairFor(factory, tokenA, tokenB);
         _approveIfNeeded(pair, address(MCV2));
         MCV2.deposit(pid, liquidity, to);
     }

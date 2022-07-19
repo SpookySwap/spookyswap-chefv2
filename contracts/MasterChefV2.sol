@@ -5,6 +5,7 @@ pragma solidity 0.8.10;
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IRewarder.sol";
 import "./interfaces/IMasterChef.sol";
 import "./utils/SpookyAuth.sol";
@@ -17,7 +18,7 @@ import "./utils/SelfPermit.sol";
 /// The idea for this MasterChef V2 (MCV2) contract is therefore to be the owner of a dummy token
 /// that is deposited into the MasterChef V1 (MCV1) contract.
 /// The allocation point for this pool on MCV1 is the total allocation point for all pools that receive double incentives.
-contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
+contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using SafeCast for uint;
 
@@ -189,11 +190,11 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
         return _updatePool(pid);
     }
 
-    function deposit(uint pid, uint amount, address to) external validatePid(pid) {
+    function deposit(uint pid, uint amount, address to) external nonReentrant validatePid(pid) {
         _deposit(pid, amount, to);
     }
 
-    function deposit(uint pid, uint amount) external validatePid(pid) {
+    function deposit(uint pid, uint amount) external nonReentrant validatePid(pid) {
         _deposit(pid, amount, msg.sender);
     }
 
@@ -232,11 +233,11 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
         emit Harvest(msg.sender, pid, _pendingBoo);
     }
 
-    function withdraw(uint pid, uint amount, address to) external validatePid(pid) {
+    function withdraw(uint pid, uint amount, address to) external nonReentrant validatePid(pid) {
         _withdraw(pid, amount, to);
     }
 
-    function withdraw(uint pid, uint amount) external validatePid(pid) {
+    function withdraw(uint pid, uint amount) external nonReentrant validatePid(pid) {
         _withdraw(pid, amount, msg.sender);
     }
 
@@ -278,7 +279,7 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
 
     /// @notice Batch harvest all rewards from all staked pools
     /// @dev This function has an unbounded gas cost. Take care not to call it from other smart contracts if you don't know what you're doing.
-    function harvestAll() external {
+    function harvestAll() external nonReentrant {
         uint256 length = poolInfoAmount;
         uint calc;
         uint pending;
@@ -311,7 +312,7 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
 
     /// @notice Batch harvest rewards from specified staked pools
     /// @param pids[] The array of pids of the pools you wish to harvest. See `poolInfo`.
-    function harvestMultiple(uint[] calldata pids) external {
+    function harvestMultiple(uint[] calldata pids) external nonReentrant {
         uint256 length = pids.length;
         uint calc;
         uint pending;
@@ -378,11 +379,11 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall {
         emit EmergencyWithdraw(msg.sender, pid, amount, to);
     }
 
-    function emergencyWithdraw(uint pid, address to) external {
+    function emergencyWithdraw(uint pid, address to) external nonReentrant {
         _emergencyWithdraw(pid, to);
     }
 
-    function emergencyWithdraw(uint pid) external {
+    function emergencyWithdraw(uint pid) external nonReentrant {
         _emergencyWithdraw(pid, msg.sender);
     }
 

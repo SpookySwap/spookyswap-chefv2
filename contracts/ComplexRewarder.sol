@@ -114,7 +114,7 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
         uint len = childrenRewarders.length();
         for(uint i = 0; i < len;) {
             IRewarder(childrenRewarders.at(i)).onReward(_pid, _user, _to, 0, _amt);
-        unchecked {++i;}
+            unchecked {++i;}
         }
     }
 

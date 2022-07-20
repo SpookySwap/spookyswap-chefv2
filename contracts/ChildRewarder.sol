@@ -6,7 +6,6 @@ import "./interfaces/IRewarder.sol";
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
-import "./MasterChefV2.sol";
 
 interface IRewarderExt is IRewarder {
     function pendingToken(uint _pid, address _user) external view returns (uint pending);
@@ -15,6 +14,10 @@ interface IRewarderExt is IRewarder {
 
 interface IERC20Ext is IERC20 {
     function decimals() external returns (uint);
+}
+
+interface IMasterChefV2 {
+    function lpSupplies(uint) external view returns (uint);
 }
 
 contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
@@ -162,7 +165,7 @@ contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
         PoolInfo memory pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
         uint accRewardPerShare = pool.accRewardPerShare;
-        (,,, uint lpSupply) = MasterChefV2(MASTERCHEF_V2).poolInfo(_pid);
+        uint lpSupply = IMasterChefV2(MASTERCHEF_V2).lpSupplies(_pid);
 
         if (block.timestamp > pool.lastRewardTime && lpSupply != 0) {
             uint time = block.timestamp - pool.lastRewardTime;
@@ -186,7 +189,7 @@ contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
     function updatePool(uint pid) public returns (PoolInfo memory pool) {
         pool = poolInfo[pid];
         if (block.timestamp > pool.lastRewardTime) {
-            (,,, uint lpSupply) = MasterChefV2(MASTERCHEF_V2).poolInfo(pid);
+            uint lpSupply = IMasterChefV2(MASTERCHEF_V2).lpSupplies(pid);
 
             if (lpSupply > 0) {
                 uint time = block.timestamp - pool.lastRewardTime;

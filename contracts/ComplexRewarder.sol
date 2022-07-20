@@ -7,7 +7,6 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import "./MasterChefV2.sol";
 import "./ChildRewarder.sol";
 
 contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
@@ -185,7 +184,7 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
         PoolInfo memory pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
         uint accRewardPerShare = pool.accRewardPerShare;
-        (,,, uint lpSupply) = MasterChefV2(MASTERCHEF_V2).poolInfo(_pid);
+        uint lpSupply = IMasterChefV2(MASTERCHEF_V2).lpSupplies(_pid);
 
         if (block.timestamp > pool.lastRewardTime && lpSupply != 0) {
             uint time = block.timestamp - pool.lastRewardTime;
@@ -209,7 +208,7 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
     function updatePool(uint pid) public returns (PoolInfo memory pool) {
         pool = poolInfo[pid];
         if (block.timestamp > pool.lastRewardTime) {
-            (,,, uint lpSupply) = MasterChefV2(MASTERCHEF_V2).poolInfo(pid);
+            uint lpSupply = IMasterChefV2(MASTERCHEF_V2).lpSupplies(pid);
 
             if (lpSupply > 0) {
                 uint time = block.timestamp - pool.lastRewardTime;

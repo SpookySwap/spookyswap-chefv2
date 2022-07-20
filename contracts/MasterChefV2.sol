@@ -37,7 +37,6 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall, ReentrancyGuard {
         uint128 accBooPerShare;
         uint64 lastRewardTime;
         uint64 allocPoint;
-        uint lpSupply;
     }
 
     /// @notice Address of MCV1 contract.
@@ -57,6 +56,7 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall, ReentrancyGuard {
     mapping(IERC20 => bool) public isLpToken;
     /// @notice Address of each `IRewarder` contract in MCV2.
     mapping(uint => IRewarder) public rewarder;
+    mapping(uint => uint) public lpSupplies;
 
     /// @notice Info of each user that stakes LP tokens.
     mapping (uint => mapping (address => UserInfo)) public userInfo;
@@ -129,7 +129,7 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall, ReentrancyGuard {
         PoolInfo memory pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
         uint accBooPerShare = pool.accBooPerShare;
-        uint lpSupply = pool.lpSupply;
+        uint lpSupply = lpSupplies[_pid];
         if (block.timestamp > pool.lastRewardTime && lpSupply != 0) {
             uint multiplier = block.timestamp - pool.lastRewardTime;
             uint booReward = totalAllocPoint == 0 ? 0 : ((multiplier * booPerSecond() * pool.allocPoint) / totalAllocPoint);
@@ -173,7 +173,7 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall, ReentrancyGuard {
     function _updatePool(uint pid) internal validatePid(pid) returns (PoolInfo memory pool) {
         pool = poolInfo[pid];
         if (block.timestamp > pool.lastRewardTime) {
-            uint lpSupply = pool.lpSupply;
+            uint lpSupply = lpSupplies[pid];
             if (lpSupply > 0) {
                 uint multiplier = block.timestamp - pool.lastRewardTime;
                 uint booReward = totalAllocPoint == 0 ? 0 : ((multiplier * booPerSecond() * pool.allocPoint) / totalAllocPoint);
@@ -226,7 +226,7 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall, ReentrancyGuard {
 
         if(amount > 0) {
             lpToken[pid].safeTransferFrom(msg.sender, address(this), amount);
-            pool.lpSupply += amount;
+            lpSupplies[pid] += amount;
         }
 
         emit Deposit(msg.sender, pid, amount, to);
@@ -270,7 +270,7 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall, ReentrancyGuard {
 
         if(amount > 0) {
             lpToken[pid].safeTransfer(to, amount);
-            pool.lpSupply -= amount;
+            lpSupplies[pid] -= amount;
         }
 
         emit Withdraw(msg.sender, pid, amount, to);
@@ -362,7 +362,6 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall, ReentrancyGuard {
     /// @param pid The index of the pool. See `poolInfo`.
     /// @param to Receiver of the LP tokens.
     function _emergencyWithdraw(uint pid, address to) internal validatePid(pid) {
-        PoolInfo storage pool = poolInfo[pid];
         UserInfo storage user = userInfo[pid][msg.sender];
         uint amount = user.amount;
         user.amount = 0;
@@ -375,7 +374,7 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall, ReentrancyGuard {
 
         // Note: transfer can fail or succeed if `amount` is zero.
         lpToken[pid].safeTransfer(to, amount);
-        pool.lpSupply -= amount;
+        lpSupplies[pid] -= amount;
         emit EmergencyWithdraw(msg.sender, pid, amount, to);
     }
 

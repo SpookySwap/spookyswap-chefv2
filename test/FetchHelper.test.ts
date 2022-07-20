@@ -8,7 +8,7 @@ import { expect } from "chai"
 const farmsUrl = 'https://assets.spooky.fi/spooky_farms.json'
 
 const addresses = {
-  mcv3: '0xDF5e820568BAEE4817e9f6d2c10385B61e45Be6B',
+  mcv3: '0x9C9C920E51778c4ABF727b8Bb223e78132F00aA4',
   mcv3Owner: '0x4a14507784fecb4bbeadf5e8d34dc5cf5b7f22a7'
 }
 

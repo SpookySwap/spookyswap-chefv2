@@ -67,12 +67,11 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
         _;
     }
 
-    constructor(IERC20Ext _rewardToken, uint _rewardPerSecond, address _MASTERCHEF_V2) {
+    constructor(IERC20Ext _rewardToken, address _MASTERCHEF_V2) {
         uint decimalsRewardToken = _rewardToken.decimals();
         require(decimalsRewardToken < 30, "Token has way too many decimals");
         ACC_TOKEN_PRECISION = 10**(30 - decimalsRewardToken);
         rewardToken = _rewardToken;
-        rewardPerSecond = _rewardPerSecond;
         MASTERCHEF_V2 = _MASTERCHEF_V2;
     }
 

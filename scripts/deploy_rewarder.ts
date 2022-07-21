@@ -3,23 +3,17 @@ import { ethers, run } from "hardhat"
 const wftm = "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83"
 
 async function main() {
-
-    // Edit these before deployment
-    const rewardToken = "0x412a13C109aC30f0dB80AD3Bd1DeFd5D0A6c0Ac6" 
-    const rewardPerSecond = 0
-    // end of edit
-
-    const masterchefv2 = "0x18b4f774fdC7BF685daeeF66c2990b1dDd9ea6aD"
     const Rewarder = await ethers.getContractFactory("ComplexRewarder");
-    const rewarder = await Rewarder.deploy(rewardToken, rewardPerSecond, masterchefv2);
+    const rewarder = await Rewarder.deploy();
     await rewarder.deployed()
   
     console.log("rewarder deployed to:", rewarder.address);
 
-    await run("verify:verify", {
+    //not needed if no changes - bytecode already verified
+    /*await run("verify:verify", {
         address: rewarder.address,
-        constructorArguments: [rewardToken, rewardPerSecond, masterchefv2],
-    })
+        constructorArguments: [],
+    })*/
   }
   
   main()

@@ -2,14 +2,14 @@
 
 pragma solidity 0.8.10;
 
-import "./interfaces/IRewarder.sol";
+import "../interfaces/IRewarder.sol";
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import "./ChildRewarder.sol";
+import "../ChildRewarder.sol";
 
-contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
+contract ComplexRewarderMock is IRewarder, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -45,7 +45,7 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
     uint public rewardPerSecond;
     uint public ACC_TOKEN_PRECISION;
 
-    address public immutable MASTERCHEF_V2 = 0x9C9C920E51778c4ABF727b8Bb223e78132F00aA4;
+    address public immutable MASTERCHEF_V2;
 
     EnumerableSet.AddressSet private childrenRewarders;
 
@@ -67,14 +67,12 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
         _;
     }
 
-    constructor() {}
-
-    function init(IERC20Ext _rewardToken, uint _rewardPerSecond) external onlyOwner {
-        require(address(rewardToken) == address(0), "Rewarder already initialised...");
+    constructor(IERC20Ext _rewardToken, uint _rewardPerSecond, address _MASTERCHEF_V2) {
         uint decimalsRewardToken = _rewardToken.decimals();
         require(decimalsRewardToken < 30, "Token has way too many decimals");
         ACC_TOKEN_PRECISION = 10**(30 - decimalsRewardToken);
         rewardToken = _rewardToken;
+        MASTERCHEF_V2 = _MASTERCHEF_V2;
         rewardPerSecond = _rewardPerSecond;
     }
 
@@ -115,7 +113,7 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
         uint len = childrenRewarders.length();
         for(uint i = 0; i < len;) {
             IRewarder(childrenRewarders.at(i)).onReward(_pid, _user, _to, 0, _amt);
-            unchecked {++i;}
+        unchecked {++i;}
         }
     }
 
@@ -129,7 +127,7 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
             IRewarderExt rew = IRewarderExt(childrenRewarders.at(i - 1));
             rewardAmounts[i] = rew.pendingToken(pid, user);
             rewardTokens[i] = rew.rewardToken();
-            unchecked {++i;}
+        unchecked {++i;}
         }
     }
 

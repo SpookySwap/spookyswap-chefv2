@@ -6,7 +6,6 @@ import "./interfaces/IRewarder.sol";
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
-import "./MasterChefV2.sol";
 
 interface IRewarderExt is IRewarder {
     function pendingToken(uint _pid, address _user) external view returns (uint pending);
@@ -15,6 +14,10 @@ interface IRewarderExt is IRewarder {
 
 interface IERC20Ext is IERC20 {
     function decimals() external returns (uint);
+}
+
+interface IMasterChefV2 {
+    function lpSupplies(uint) external view returns (uint);
 }
 
 contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
@@ -47,14 +50,14 @@ contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
     /// @notice Info of each user that stakes LP tokens.
     mapping (uint => mapping (address => UserInfo)) public userInfo;
     /// @dev Total allocation points. Must be the sum of all allocation points in all pools.
-    uint totalAllocPoint;
+    uint public totalAllocPoint;
 
     uint public rewardPerSecond;
     uint public ACC_TOKEN_PRECISION;
 
-    address private MASTERCHEF_V2;
+    address public MASTERCHEF_V2;
 
-    address private PARENT;
+    address public PARENT;
 
     bool notinit = true;
 
@@ -73,7 +76,7 @@ contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
 
     constructor () {} //use init()
 
-    function init(IERC20Ext _rewardToken, uint _rewardPerSecond, address _MASTERCHEF_V2, address _PARENT) external {
+    function init(IERC20Ext _rewardToken, uint _rewardPerSecond, address _MASTERCHEF_V2) external {
         require(notinit);
 
         uint decimalsRewardToken = _rewardToken.decimals();
@@ -82,7 +85,7 @@ contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
         rewardToken = _rewardToken;
         rewardPerSecond = _rewardPerSecond;
         MASTERCHEF_V2 = _MASTERCHEF_V2;
-        PARENT = _PARENT;
+        PARENT = msg.sender;
 
         notinit = false;
     }
@@ -162,7 +165,7 @@ contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
         PoolInfo memory pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
         uint accRewardPerShare = pool.accRewardPerShare;
-        uint lpSupply = MasterChefV2(MASTERCHEF_V2).lpToken(_pid).balanceOf(MASTERCHEF_V2);
+        uint lpSupply = IMasterChefV2(MASTERCHEF_V2).lpSupplies(_pid);
 
         if (block.timestamp > pool.lastRewardTime && lpSupply != 0) {
             uint time = block.timestamp - pool.lastRewardTime;
@@ -186,7 +189,7 @@ contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
     function updatePool(uint pid) public returns (PoolInfo memory pool) {
         pool = poolInfo[pid];
         if (block.timestamp > pool.lastRewardTime) {
-            uint lpSupply = MasterChefV2(MASTERCHEF_V2).lpToken(pid).balanceOf(MASTERCHEF_V2);
+            uint lpSupply = IMasterChefV2(MASTERCHEF_V2).lpSupplies(pid);
 
             if (lpSupply > 0) {
                 uint time = block.timestamp - pool.lastRewardTime;

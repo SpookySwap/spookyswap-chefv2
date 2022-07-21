@@ -64,4 +64,12 @@ abstract contract SelfPermit {
         if (IERC20(token).allowance(msg.sender, address(this)) < type(uint256).max)
             selfPermitAllowed(token, nonce, expiry, v, r, s);
     }
+
+    function supportsPermits(address token) external view returns (bytes32 domainSeparator) {
+        try IERC20Permit(token).DOMAIN_SEPARATOR() returns (bytes32 separator) {
+            return separator;
+        } catch {
+            return bytes32(0);
+        }
+    }
 }

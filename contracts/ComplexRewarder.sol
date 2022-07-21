@@ -13,7 +13,7 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    IERC20 public immutable rewardToken;
+    IERC20 public rewardToken;
 
     /// @notice Info of each MCV2 user.
     /// `amount` LP token amount the user has provided.
@@ -43,9 +43,9 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
     uint public totalAllocPoint;
 
     uint public rewardPerSecond;
-    uint public immutable ACC_TOKEN_PRECISION;
+    uint public ACC_TOKEN_PRECISION;
 
-    address public immutable MASTERCHEF_V2;
+    address public immutable MASTERCHEF_V2 = 0x9C9C920E51778c4ABF727b8Bb223e78132F00aA4;
 
     EnumerableSet.AddressSet private childrenRewarders;
 
@@ -67,12 +67,15 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
         _;
     }
 
-    constructor(IERC20Ext _rewardToken, address _MASTERCHEF_V2) {
+    constructor() {}
+
+    function init(IERC20Ext _rewardToken, uint _rewardPerSecond) external onlyOwner {
+        require(address(rewardToken) == address(0), "Rewarder already initialised...");
         uint decimalsRewardToken = _rewardToken.decimals();
         require(decimalsRewardToken < 30, "Token has way too many decimals");
         ACC_TOKEN_PRECISION = 10**(30 - decimalsRewardToken);
         rewardToken = _rewardToken;
-        MASTERCHEF_V2 = _MASTERCHEF_V2;
+        rewardPerSecond = _rewardPerSecond;
     }
 
     function createChild(IERC20Ext _rewardToken, uint _rewardPerSecond) external onlyOwner {

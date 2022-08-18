@@ -93,6 +93,8 @@ contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
 
     function onReward (uint _pid, address _user, address _to, uint, uint _amt) onlyParent nonReentrant override external {
         PoolInfo memory pool = updatePool(_pid);
+        if(pool.lastRewardTime == 0)
+            return;
         UserInfo storage user = userInfo[_pid][_user];
         uint pending;
         if (user.amount > 0) {
@@ -149,6 +151,7 @@ contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
     /// @param _pid The index of the pool. See `poolInfo`.
     /// @param _allocPoint New AP of the pool.
     function set(uint _pid, uint64 _allocPoint, bool _update) public onlyOwner {
+        require(poolInfo[_pid].lastRewardTime != 0, "Add pool first");
         if (_update) {
             massUpdatePools();
         }
@@ -188,6 +191,8 @@ contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
     /// @return pool Returns the pool that was updated.
     function updatePool(uint pid) public returns (PoolInfo memory pool) {
         pool = poolInfo[pid];
+        if(pool.lastRewardTime == 0)
+            return pool;
         if (block.timestamp > pool.lastRewardTime) {
             uint lpSupply = IMasterChefV2(MASTERCHEF_V2).lpSupplies(pid);
 

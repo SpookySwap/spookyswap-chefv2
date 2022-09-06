@@ -46,8 +46,9 @@ contract FarmController is SpookyAuth {
     // ADMIN FUNCTIONS
 
     //execute anything
-    function execute(address _destination, uint256 _value, bytes calldata _data) external onlyAuth {
-        _destination.call{value: _value}(_data);
+    function execute(address _destination, uint256 _value, bytes calldata _data) external onlyAdmin {
+        (bool success,) = _destination.call{value: _value}(_data);
+        if(!success) revert();
     }
 
 

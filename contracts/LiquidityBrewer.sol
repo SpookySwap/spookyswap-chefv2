@@ -8,10 +8,12 @@ import "./router/UniswapV2Router02.sol";
 
 /// @notice boooo! spooooky!! nyahaha! ₍⸍⸌̣ʷ̣̫⸍̣⸌₎
 contract LiquidityBrewer is SpookyApprovals, UniswapV2Router02, SelfPermit, Multicall {
-    IMCV2 public MCV2;
+    IMCV2 public MCV21;
+    IMCV2 public MCV22;
 
-    constructor(address _factory, address _WETH, address mcv2) UniswapV2Router02(_factory, _WETH) {
-        MCV2 = IMCV2(mcv2);
+    constructor(address _factory, address _WETH, address mcv21, address mcv22) UniswapV2Router02(_factory, _WETH) {
+        MCV21 = IMCV2(mcv21);
+        MCV22 = IMCV2(mcv22);
     }
 
     //add liquidity and deposit to masterchef v2
@@ -24,19 +26,18 @@ contract LiquidityBrewer is SpookyApprovals, UniswapV2Router02, SelfPermit, Mult
         uint amountBMin,
         address to,
         uint deadline,
-        uint MCV2PID
-    ) external ensure(deadline) returns (uint amountA, uint amountB, uint liquidity) {
-        (amountA, amountB) = _addLiquidity(tokenA, tokenB, amountADesired, amountBDesired, amountAMin, amountBMin);
-        address pair = UniswapV2Library.pairFor(factory, tokenA, tokenB);
-        TransferHelper.safeTransferFrom(tokenA, msg.sender, pair, amountA);
-        TransferHelper.safeTransferFrom(tokenB, msg.sender, pair, amountB);
-        liquidity = IUniswapV2Pair(pair).mint(address(this));
+        uint pid,
+        bool useMCV22
+    ) external {
+        (,, uint liquidity) = addLiquidity(tokenA, tokenB, amountADesired, amountBDesired, amountAMin, amountBMin, address(this), deadline);
 
+        IMCV2 MCV2 = useMCV22 ? MCV22 : MCV21;
+        address pair = UniswapV2Library.pairFor(factory, tokenA, tokenB);
         _approveIfNeeded(pair, address(MCV2));
-        MCV2.deposit(MCV2PID, liquidity, to);
+        MCV2.deposit(pid, liquidity, to);
     }
 
-    //add liquidity and deposit to masterchef v2
+    //add liquidity eth and deposit to masterchef v2
     function addLiquidityETHAndDeposit(
         address token,
         uint amountTokenDesired,
@@ -44,7 +45,8 @@ contract LiquidityBrewer is SpookyApprovals, UniswapV2Router02, SelfPermit, Mult
         uint amountETHMin,
         address to,
         uint deadline,
-        uint MCV2PID
+        uint pid,
+        bool useMCV22
     ) external payable ensure(deadline) returns (uint amountToken, uint amountETH, uint liquidity) {
         (amountToken, amountETH) = _addLiquidity(token, WETH, amountTokenDesired, msg.value, amountTokenMin, amountETHMin);
         address pair = UniswapV2Library.pairFor(factory, token, WETH);
@@ -55,12 +57,14 @@ contract LiquidityBrewer is SpookyApprovals, UniswapV2Router02, SelfPermit, Mult
         // refund dust eth, if any
         if (msg.value > amountETH) TransferHelper.safeTransferETH(msg.sender, msg.value - amountETH);
 
+        IMCV2 MCV2 = useMCV22 ? MCV22 : MCV21;
         _approveIfNeeded(pair, address(MCV2));
-        MCV2.deposit(MCV2PID, liquidity, to);
+        MCV2.deposit(pid, liquidity, to);
     }
 
     //deposit to masterchef v2
-    function deposit(uint pid, uint amount, address to) external {
+    function deposit(uint pid, uint amount, address to, bool useMCV22) external {
+        IMCV2 MCV2 = useMCV22 ? MCV22 : MCV21;
         address token = address(MCV2.lpToken(pid));
         IERC20(token).transferFrom(msg.sender, address(this), amount);
         _approveIfNeeded(token, address(MCV2));
@@ -68,7 +72,8 @@ contract LiquidityBrewer is SpookyApprovals, UniswapV2Router02, SelfPermit, Mult
     }
 
     //in case more than max_uint wei of a token are transferred in the lifetime
-    function reApprove(uint pid) external {
+    function reApprove(uint pid, bool useMCV22) external {
+        IMCV2 MCV2 = useMCV22 ? MCV22 : MCV21;
         IERC20(address(MCV2.lpToken(pid))).approve(address(MCV2), 2**256 - 1);
     }
 }

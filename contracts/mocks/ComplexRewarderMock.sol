@@ -2,26 +2,16 @@
 
 pragma solidity 0.8.10;
 
-import "./interfaces/IRewarder.sol";
+import "../interfaces/IRewarder.sol";
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "../ChildRewarder.sol";
 
-interface IRewarderExt is IRewarder {
-    function pendingToken(uint _pid, address _user) external view returns (uint pending);
-    function rewardToken() external view returns (IERC20);
-}
-
-interface IERC20Ext is IERC20 {
-    function decimals() external returns (uint);
-}
-
-interface IMasterChefV2 {
-    function lpSupplies(uint) external view returns (uint);
-}
-
-contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
+contract ComplexRewarderMock is IRewarder, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
     IERC20 public rewardToken;
 
@@ -55,11 +45,9 @@ contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
     uint public rewardPerSecond;
     uint public ACC_TOKEN_PRECISION;
 
-    address public MASTERCHEF_V2;
+    address public immutable MASTERCHEF_V2;
 
-    address public PARENT;
-
-    bool notinit = true;
+    EnumerableSet.AddressSet private childrenRewarders;
 
     event LogOnReward(address indexed user, uint indexed pid, uint amount, address indexed to);
     event LogPoolAddition(uint indexed pid, uint allocPoint);
@@ -68,33 +56,51 @@ contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
     event LogRewardPerSecond(uint rewardPerSecond);
     event AdminTokenRecovery(address _tokenAddress, uint _amt, address _adr);
     event LogInit();
+    event ChildCreated(address indexed child, address indexed token);
+    event ChildRemoved(address indexed child);
 
-    modifier onlyParent {
-        require(msg.sender == PARENT, "Only PARENT can call this function.");
+    modifier onlyMCV2 {
+        require(
+            msg.sender == MASTERCHEF_V2,
+            "Only MCV2 can call this function."
+        );
         _;
     }
 
-    constructor () {} //use init()
-
-    function init(IERC20Ext _rewardToken, uint _rewardPerSecond, address _MASTERCHEF_V2) external {
-        require(notinit);
-
+    constructor(IERC20Ext _rewardToken, uint _rewardPerSecond, address _MASTERCHEF_V2) {
         uint decimalsRewardToken = _rewardToken.decimals();
         require(decimalsRewardToken < 30, "Token has way too many decimals");
         ACC_TOKEN_PRECISION = 10**(30 - decimalsRewardToken);
         rewardToken = _rewardToken;
-        rewardPerSecond = _rewardPerSecond;
         MASTERCHEF_V2 = _MASTERCHEF_V2;
-        PARENT = msg.sender;
+        rewardPerSecond = _rewardPerSecond;
+    }
 
-        notinit = false;
+    function createChild(IERC20Ext _rewardToken, uint _rewardPerSecond) external onlyOwner {
+        ChildRewarder child = new ChildRewarder();
+        child.init(_rewardToken, _rewardPerSecond, MASTERCHEF_V2);
+        Ownable(address(child)).transferOwnership(msg.sender);
+        childrenRewarders.add(address(child));
+        emit ChildCreated(address(child), address(_rewardToken));
+    }
+
+    function removeChild(address childRewarder) external onlyOwner {
+        if(!childrenRewarders.remove(childRewarder))
+            revert("That is not my child rewarder!");
+        emit ChildRemoved(childRewarder);
+    }
+
+    //* WARNING: This operation will copy the entire childrenRewarders storage to memory, which can be quite expensive. This is designed
+    //* to mostly be used by view accessors that are queried without any gas fees. Developers should keep in mind that
+    //* this function has an unbounded cost, and using it as part of a state-changing function may render the function
+    //* uncallable if the set grows to a point where copying to memory consumes too much gas to fit in a block.
+    function getChildrenRewarders() external view returns (address[] memory) {
+        return childrenRewarders.values();
     }
 
 
-    function onReward (uint _pid, address _user, address _to, uint, uint _amt) onlyParent nonReentrant override external {
+    function onReward(uint _pid, address _user, address _to, uint, uint _amt) onlyMCV2 nonReentrant override external {
         PoolInfo memory pool = updatePool(_pid);
-        if(pool.lastRewardTime == 0)
-            return;
         UserInfo storage user = userInfo[_pid][_user];
         uint pending;
         if (user.amount > 0) {
@@ -104,14 +110,25 @@ contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
         user.amount = _amt;
         user.rewardDebt = _amt * pool.accRewardPerShare / ACC_TOKEN_PRECISION;
         emit LogOnReward(_user, _pid, pending, _to);
+        uint len = childrenRewarders.length();
+        for(uint i = 0; i < len;) {
+            IRewarder(childrenRewarders.at(i)).onReward(_pid, _user, _to, 0, _amt);
+        unchecked {++i;}
+        }
     }
 
     function pendingTokens(uint pid, address user, uint) override external view returns (IERC20[] memory rewardTokens, uint[] memory rewardAmounts) {
-        IERC20[] memory _rewardTokens = new IERC20[](1);
-        _rewardTokens[0] = (rewardToken);
-        uint[] memory _rewardAmounts = new uint[](1);
-        _rewardAmounts[0] = pendingToken(pid, user);
-        return (_rewardTokens, _rewardAmounts);
+        uint len = childrenRewarders.length() + 1;
+        rewardTokens = new IERC20[](len);
+        rewardTokens[0] = rewardToken;
+        rewardAmounts = new uint[](len);
+        rewardAmounts[0] = pendingToken(pid, user);
+        for(uint i = 1; i < len;) {
+            IRewarderExt rew = IRewarderExt(childrenRewarders.at(i - 1));
+            rewardAmounts[i] = rew.pendingToken(pid, user);
+            rewardTokens[i] = rew.rewardToken();
+        unchecked {++i;}
+        }
     }
 
     /// @notice Sets the reward per second to be distributed. Can only be called by the owner.
@@ -151,7 +168,6 @@ contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
     /// @param _pid The index of the pool. See `poolInfo`.
     /// @param _allocPoint New AP of the pool.
     function set(uint _pid, uint64 _allocPoint, bool _update) public onlyOwner {
-        require(poolInfo[_pid].lastRewardTime != 0, "Add pool first");
         if (_update) {
             massUpdatePools();
         }
@@ -191,8 +207,6 @@ contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
     /// @return pool Returns the pool that was updated.
     function updatePool(uint pid) public returns (PoolInfo memory pool) {
         pool = poolInfo[pid];
-        if(pool.lastRewardTime == 0)
-            return pool;
         if (block.timestamp > pool.lastRewardTime) {
             uint lpSupply = IMasterChefV2(MASTERCHEF_V2).lpSupplies(pid);
 

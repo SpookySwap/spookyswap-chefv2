@@ -3,7 +3,7 @@ import { expect } from "chai"
 
 describe("MasterChefV2", function () {
   before(async function () {
-    await prepare(this, ["MasterChef", "SpookyToken", "ERC20Mock", "MasterChefV2", "ComplexRewarder"])
+    await prepare(this, ["MasterChef", "SpookyToken", "ERC20Mock", "MasterChefV2", "ComplexRewarderMock"])
     //await deploy(this, [["brokenRewarder", this.RewarderBrokenMock]])
   })
 
@@ -28,8 +28,8 @@ describe("MasterChefV2", function () {
       ["r", this.ERC20Mock, ["Reward", "RewardT", getBigNumber(100000)]],
       ["r2", this.ERC20Mock, ["Reward2", "RewardT2", getBigNumber(100000)]],
     ])
-    await deploy(this, [["rewarder", this.ComplexRewarder, [this.r.address, getBigNumber(50), this.chef2.address]]])
-    await deploy(this, [["rewarder2", this.ComplexRewarder, [this.r2.address, getBigNumber(50), this.chef2.address]]])
+    await deploy(this, [["rewarder", this.ComplexRewarderMock, [this.r.address, getBigNumber(50), this.chef2.address]]])
+    await deploy(this, [["rewarder2", this.ComplexRewarderMock, [this.r2.address, getBigNumber(50), this.chef2.address]]])
     await this.dummy.approve(this.chef2.address, getBigNumber(10))
     await this.chef2.init(this.dummy.address)
     await this.rlp.transfer(this.bob.address, getBigNumber(1))
@@ -235,7 +235,7 @@ describe("MasterChefV2", function () {
       await this.chef2.add(10, this.rlp.address, this.rewarder.address, false)
       await this.rlp.approve(this.chef2.address, getBigNumber(10))
       await this.chef2['deposit(uint256,uint256,address)'](0, getBigNumber(1), this.bob.address)
-      await expect(this.chef2.connect(this.bob).emergencyWithdraw(0, this.bob.address))
+      await expect(this.chef2.connect(this.bob)["emergencyWithdraw(uint256,address)"](0, this.bob.address))
         .to.emit(this.chef2, "EmergencyWithdraw")
         .withArgs(this.bob.address, 0, getBigNumber(1), this.bob.address)
     })

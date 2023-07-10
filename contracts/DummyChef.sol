@@ -17,7 +17,7 @@ import "./SpookyToken.sol";
 // distributed and the community can show to govern itself.
 //
 // Have fun reading it. Hopefully it's bug-free. 
-contract MasterChef is Ownable {
+contract DummyChef is Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -46,9 +46,6 @@ contract MasterChef is Ownable {
         uint256 accBOOPerShare; // Accumulated BOOs per share, times 1e12. See below.
     }
 
-    // such a spooky token!
-    SpookyToken public boo;
-
     // Dev address.
     address public devaddr;
     // boo tokens created per block.
@@ -72,16 +69,10 @@ contract MasterChef is Ownable {
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
 
-    constructor(
-        SpookyToken _boo,
-        address _devaddr,
-        uint256 _booPerSecond,
-        uint256 _startTime
-    ) {
-        boo = _boo;
-        devaddr = _devaddr;
-        booPerSecond = _booPerSecond;
-        startTime = _startTime;
+    constructor() {
+        devaddr = msg.sender;
+        booPerSecond = 0;
+        startTime = block.timestamp;
     }
 
     function poolLength() external view returns (uint256) {
@@ -181,8 +172,8 @@ contract MasterChef is Ownable {
         uint256 multiplier = getMultiplier(pool.lastRewardTime, block.timestamp);
         uint256 booReward = multiplier.mul(booPerSecond).mul(pool.allocPoint).div(totalAllocPoint);
 
-        boo.mint(devaddr, booReward.div(10));
-        boo.mint(address(this), booReward);
+        //boo.mint(devaddr, booReward.div(10));
+        //boo.mint(address(this), booReward);
 
         pool.accBOOPerShare = pool.accBOOPerShare.add(booReward.mul(1e12).div(lpSupply));
         pool.lastRewardTime = block.timestamp;
@@ -247,12 +238,6 @@ contract MasterChef is Ownable {
 
     // Safe boo transfer function, just in case if rounding error causes pool to not have enough BOOs.
     function safeBOOTransfer(address _to, uint256 _amount) internal {
-        uint256 booBal = boo.balanceOf(address(this));
-        if (_amount > booBal) {
-            boo.transfer(_to, booBal);
-        } else {
-            boo.transfer(_to, _amount);
-        }
     }
 
     // Update dev address by the previous dev.

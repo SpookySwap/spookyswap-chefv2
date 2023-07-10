@@ -6,17 +6,12 @@ import "./interfaces/IRewarder.sol";
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "./ChildRewarder.sol";
 
-interface IERC20Ext is IERC20 {
-    function decimals() external returns (uint);
-}
-
-interface IMasterChefV2 {
-    function lpSupplies(uint) external view returns (uint);
-}
-
-contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
+contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
     IERC20 public rewardToken;
 
@@ -50,11 +45,7 @@ contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
     uint public rewardPerSecond;
     uint public ACC_TOKEN_PRECISION;
 
-    address public MASTERCHEF_V2;
-
-    address public PARENT;
-
-    bool notinit = true;
+    address public immutable MASTERCHEF_V2 = 0x9C9C920E51778c4ABF727b8Bb223e78132F00aA4;
 
     event LogOnReward(address indexed user, uint indexed pid, uint amount, address indexed to);
     event LogPoolAddition(uint indexed pid, uint allocPoint);
@@ -64,29 +55,27 @@ contract ChildRewarder is IRewarder, Ownable, ReentrancyGuard {
     event AdminTokenRecovery(address _tokenAddress, uint _amt, address _adr);
     event LogInit();
 
-    modifier onlyParent {
-        require(msg.sender == PARENT, "Only PARENT can call this function.");
+    modifier onlyMCV2 {
+        require(
+            msg.sender == MASTERCHEF_V2,
+            "Only MCV2 can call this function."
+        );
         _;
     }
 
-    constructor () {} //use init()
+    constructor() {}
 
-    function init(IERC20Ext _rewardToken, uint _rewardPerSecond, address _MASTERCHEF_V2) external {
-        require(notinit);
-
+    function init(IERC20Ext _rewardToken, uint _rewardPerSecond) external onlyOwner {
+        require(address(rewardToken) == address(0), "Rewarder already initialised...");
         uint decimalsRewardToken = _rewardToken.decimals();
         require(decimalsRewardToken < 30, "Token has way too many decimals");
         ACC_TOKEN_PRECISION = 10**(30 - decimalsRewardToken);
         rewardToken = _rewardToken;
         rewardPerSecond = _rewardPerSecond;
-        MASTERCHEF_V2 = _MASTERCHEF_V2;
-        PARENT = msg.sender;
-
-        notinit = false;
     }
 
 
-    function onReward (uint _pid, address _user, address _to, uint, uint _amt) onlyParent nonReentrant override external {
+    function onReward(uint _pid, address _user, address _to, uint, uint _amt) onlyMCV2 nonReentrant override external {
         PoolInfo memory pool = updatePool(_pid);
         if(pool.lastRewardTime == 0)
             return;

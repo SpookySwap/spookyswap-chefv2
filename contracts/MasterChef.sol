@@ -91,7 +91,7 @@ contract MasterChef is Ownable {
     // Changes boo token reward per second, with a cap of maxboo per second
     // Good practice to update pools without messing up the contract
     function setBooPerSecond(uint256 _booPerSecond) external onlyOwner {
-        require(_booPerSecond <= maxBooPerSecond, "setBooPerSecond: too many boos!");
+        //require(_booPerSecond <= maxBooPerSecond, "setBooPerSecond: too many boos!");
 
         // This MUST be done or pool rewards will be calculated with new boo per second
         // This could unfairly punish small pools that dont have frequent deposits/withdraws/harvests

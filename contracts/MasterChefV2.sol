@@ -68,7 +68,7 @@ contract MasterChefV2 is SpookyAuth, SelfPermit, Multicall, ReentrancyGuard {
     /// @dev Last MCV1 harvest timestamp.
     uint public lastV1HarvestTimestamp;
     /// @dev How often v1 harvest should be called by the query function
-    uint public V1_HARVEST_QUERY_TIME = 1 days;
+    uint public V1_HARVEST_QUERY_TIME = 900;
 
     event Deposit(address indexed user, uint indexed pid, uint amount, address indexed to);
     event Withdraw(address indexed user, uint indexed pid, uint amount, address indexed to);

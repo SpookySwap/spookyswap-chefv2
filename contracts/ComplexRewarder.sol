@@ -45,7 +45,7 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
     uint public rewardPerSecond;
     uint public ACC_TOKEN_PRECISION;
 
-    address public immutable MASTERCHEF_V2 = 0x9C9C920E51778c4ABF727b8Bb223e78132F00aA4;
+    address public immutable MASTERCHEF_V2;
 
     EnumerableSet.AddressSet private childrenRewarders;
 
@@ -67,7 +67,9 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
         _;
     }
 
-    constructor() {}
+    constructor(address mcv2) {
+        MASTERCHEF_V2 = mcv2;
+    }
 
     function init(IERC20Ext _rewardToken, uint _rewardPerSecond) external onlyOwner {
         require(address(rewardToken) == address(0), "Rewarder already initialised...");

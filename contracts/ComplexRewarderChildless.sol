@@ -7,7 +7,6 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import "./ChildRewarder.sol";
 
 contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -45,7 +44,7 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
     uint public rewardPerSecond;
     uint public ACC_TOKEN_PRECISION;
 
-    address public immutable MASTERCHEF_V2 = 0x9C9C920E51778c4ABF727b8Bb223e78132F00aA4;
+    address public immutable MASTERCHEF_V2;
 
     event LogOnReward(address indexed user, uint indexed pid, uint amount, address indexed to);
     event LogPoolAddition(uint indexed pid, uint allocPoint);
@@ -63,7 +62,9 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
         _;
     }
 
-    constructor() {}
+    constructor(address mcv2) {
+        MASTERCHEF_V2 = mcv2;
+    }
 
     function init(IERC20Ext _rewardToken, uint _rewardPerSecond) external onlyOwner {
         require(address(rewardToken) == address(0), "Rewarder already initialised...");
@@ -130,6 +131,24 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
         poolIds.push(_pid);
         emit LogPoolAddition(_pid, allocPoint);
     }
+    
+    function addBatch(uint64[] memory allocPoints, uint startPid) public onlyOwner {
+        for(uint i = 0; i < allocPoints.length; i++) {
+            uint _pid = startPid + i;
+            uint64 allocPoint = allocPoints[i];
+            
+            require(poolInfo[_pid].lastRewardTime == 0, "Pool already exists");
+            uint64 lastRewardTime = uint64(block.timestamp);
+            totalAllocPoint = totalAllocPoint + allocPoint;
+
+            PoolInfo storage poolinfo = poolInfo[_pid];
+            poolinfo.allocPoint = allocPoint;
+            poolinfo.lastRewardTime = lastRewardTime;
+            poolinfo.accRewardPerShare = 0;
+            poolIds.push(_pid);
+            emit LogPoolAddition(_pid, allocPoint);
+        }
+    }
 
     /// @notice Update the given pool's REWARD allocation point and `IRewarder` contract. Can only be called by the owner.
     /// @param _pid The index of the pool. See `poolInfo`.
@@ -142,6 +161,17 @@ contract ComplexRewarder is IRewarder, Ownable, ReentrancyGuard {
         totalAllocPoint = totalAllocPoint - poolInfo[_pid].allocPoint + _allocPoint;
         poolInfo[_pid].allocPoint = _allocPoint;
         emit LogSetPool(_pid, _allocPoint);
+    }
+    
+    function setBatch(uint64[] memory allocPoints, uint startPid) public onlyOwner {
+        for(uint i = 0; i < allocPoints.length; i++) {
+            uint _pid = startPid + i;
+            uint64 _allocPoint = allocPoints[i];
+            require(poolInfo[_pid].lastRewardTime != 0, "Add pool first");
+            totalAllocPoint = totalAllocPoint - poolInfo[_pid].allocPoint + _allocPoint;
+            poolInfo[_pid].allocPoint = _allocPoint;
+            emit LogSetPool(_pid, _allocPoint);
+        }
     }
 
     /// @notice View function to see pending Token
